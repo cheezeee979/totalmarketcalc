@@ -15,6 +15,8 @@ import type {
   RaceKey,
   RegionKey,
   SexKey,
+  AgeKey,
+  ChildrenKey,
 } from './types'
 import type { SelectionState } from './utils/calculations'
 
@@ -63,6 +65,13 @@ const labelLookup: Record<string, string> = {
   employed: 'Employed',
   unemployed: 'Unemployed',
   notInLabor: 'Not in labor force',
+  age0to17: '0-17',
+  age18to34: '18-34',
+  age35to54: '35-54',
+  age55to74: '55-74',
+  age75plus: '75+',
+  hasChildren: 'Has children in household',
+  noChildren: 'No children in household',
 }
 
 const createBlankSelection = (): SelectionState => ({
@@ -70,6 +79,8 @@ const createBlankSelection = (): SelectionState => ({
   race: new Set(),
   region: new Set(),
   employment: new Set(),
+  age: new Set(),
+  children: new Set(),
 })
 
 const sexOptions: Array<{ key: SexKey; label: string; description: string }> = [
@@ -95,6 +106,27 @@ const employmentOptions: Array<{ key: EmploymentKey; label: string; description:
   { key: 'employed', label: 'Employed', description: 'DP03_0004E (16+ civilian employed)' },
   { key: 'unemployed', label: 'Unemployed', description: 'DP03_0005E (16+ in labor force)' },
   { key: 'notInLabor', label: 'Not in labor force', description: 'DP03_0007E (16+)' },
+]
+
+const ageOptions: Array<{ key: AgeKey; label: string; description: string }> = [
+  { key: 'age0to17', label: '0-17', description: 'ACS B01001 aggregated youth population' },
+  { key: 'age18to34', label: '18-34', description: 'ACS B01001 young adult population' },
+  { key: 'age35to54', label: '35-54', description: 'ACS B01001 prime working years' },
+  { key: 'age55to74', label: '55-74', description: 'ACS B01001 older adult population' },
+  { key: 'age75plus', label: '75+', description: 'ACS B01001 seniors' },
+]
+
+const childrenOptions: Array<{ key: ChildrenKey; label: string; description: string }> = [
+  {
+    key: 'hasChildren',
+    label: 'Has children in household',
+    description: 'DP02 households with own children under 18 (scaled to population)',
+  },
+  {
+    key: 'noChildren',
+    label: 'No children in household',
+    description: 'Complement population not in households with children',
+  },
 ]
 
 function App() {
@@ -241,7 +273,7 @@ const HomePage = ({
       </p>
     </section>
 
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       <FilterCard
         title="Sex / race"
         description="Multi-select allowed. Shares derived from ACS B01001 and B02001."
@@ -270,6 +302,25 @@ const HomePage = ({
               description={option.description}
               checked={selection.race.has(option.key)}
               onChange={(checked) => toggleSelection('race', option.key, checked)}
+            />
+          ))}
+        </fieldset>
+      </FilterCard>
+
+      <FilterCard
+        title="Age bands"
+        description="Broad age groups aggregated from ACS B01001."
+      >
+        <fieldset className="space-y-2" aria-label="Age bands">
+          <legend className="mb-1 text-sm font-semibold text-slate-800">Age</legend>
+          {ageOptions.map((option) => (
+            <FilterCheckbox
+              key={option.key}
+              id={`age-${option.key}`}
+              label={option.label}
+              description={option.description}
+              checked={selection.age.has(option.key)}
+              onChange={(checked) => toggleSelection('age', option.key, checked)}
             />
           ))}
         </fieldset>
@@ -313,9 +364,28 @@ const HomePage = ({
         </fieldset>
       </FilterCard>
 
+      <FilterCard
+        title="Has children"
+        description="Households with own children under 18 (ACS DP02), scaled to population."
+      >
+        <fieldset className="space-y-2" aria-label="Household children">
+          <legend className="mb-1 text-sm font-semibold text-slate-800">Children in household</legend>
+          {childrenOptions.map((option) => (
+            <FilterCheckbox
+              key={option.key}
+              id={`children-${option.key}`}
+              label={option.label}
+              description={option.description}
+              checked={selection.children.has(option.key)}
+              onChange={(checked) => toggleSelection('children', option.key, checked)}
+            />
+          ))}
+        </fieldset>
+      </FilterCard>
+
       <FilterCard title="Etc" description="Additional filters will appear here soon.">
         <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-left text-sm text-slate-500">
-          Coming soon: education, income, age bands, and more ways to slice the data.
+          Coming soon: education, income, household type, and more ways to slice the data.
         </div>
       </FilterCard>
     </div>

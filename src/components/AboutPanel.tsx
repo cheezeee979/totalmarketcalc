@@ -15,6 +15,8 @@ export const AboutPanel = ({ year, generatedAt }: Props) => (
         <li>Totals: B01003 (Total population), B01001 (Sex by age), B02001 (Race).</li>
         <li>Regions: B01003 grouped by Census region codes 1–4.</li>
         <li>Employment: DP03 (Selected Economic Characteristics), shown as a share of total pop.</li>
+        <li>Age bands: Aggregated buckets from B01001 (youth, young adult, prime working, older adult, seniors).</li>
+        <li>Children in household: DP02 households with own children under 18, scaled to total population.</li>
         <li>
           Calculation assumes independence between dimensions. Multi-selects within a dimension are
           treated as a union.
