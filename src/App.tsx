@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AboutPanel } from './components/AboutPanel'
 import { FilterCard } from './components/FilterCard'
 import { FilterCheckbox } from './components/FilterCheckbox'
@@ -8,7 +8,9 @@ import {
   computeEstimatedPopulation,
   computeOverallProbability,
   formatNumber,
+  formatPercent,
 } from './utils/calculations'
+import { useAnimatedNumber } from './hooks/useAnimatedNumber'
 import type {
   EmploymentKey,
   PopulationData,
@@ -177,12 +179,74 @@ const householdTypeOptions: Array<{ key: HouseholdTypeKey; label: string; descri
   { key: 'otherHousehold', label: 'Other household', description: 'Roommates, multigenerational, etc.' },
 ]
 
+// Sticky Stats Bar Component
+type StickyStatBarProps = {
+  estimated: number
+  probability: number
+  visible: boolean
+  onScrollToTop: () => void
+}
+
+const StickyStatBar = ({ estimated, probability, visible, onScrollToTop }: StickyStatBarProps) => {
+  const animatedValue = useAnimatedNumber(estimated)
+  const isTiny = estimated > 0 && estimated < 1000
+  const displayValue = isTiny ? '< 1,000' : formatNumber(animatedValue)
+
+  return (
+    <div
+      className={`fixed left-0 right-0 top-[58px] z-40 transition-all duration-300 ${
+        visible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'
+      }`}
+    >
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className="glass rounded-2xl border border-white/10 px-4 py-3 shadow-lg sm:px-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-2">
+                <svg className="hidden h-4 w-4 text-accent-500 sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span className="hidden text-xs text-slate-500 sm:inline">Population:</span>
+              </div>
+              <span className="font-mono text-lg font-bold text-gradient sm:text-xl" aria-live="polite">
+                {displayValue}
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-1.5 rounded-lg border border-accent-500/20 bg-accent-500/5 px-3 py-1">
+                <span className="font-mono text-base font-semibold text-accent-400 sm:text-lg" aria-live="polite">
+                  {formatPercent(probability)}%
+                </span>
+                <span className="hidden text-xs text-slate-500 sm:inline">of U.S.</span>
+              </div>
+              
+              <button
+                onClick={onScrollToTop}
+                className="group flex items-center gap-1.5 rounded-lg border border-dark-300 bg-dark-600/50 px-3 py-1.5 text-xs font-medium text-slate-400 transition hover:border-accent-500/50 hover:text-white"
+                title="View full stats"
+              >
+                <svg className="h-3.5 w-3.5 transition group-hover:-translate-y-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                </svg>
+                <span className="hidden sm:inline">View</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function App() {
   const { route, navigate } = useInAppRoute()
   const [data, setData] = useState<PopulationData | null>(null)
   const [selection, setSelection] = useState<SelectionState>(createBlankSelection)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
+  const [showStickyBar, setShowStickyBar] = useState(false)
+  const mainStatRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -201,6 +265,30 @@ function App() {
 
     load()
   }, [])
+
+  // Track when MainStat scrolls out of view
+  useEffect(() => {
+    if (!mainStatRef.current) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // Show sticky bar when main stat is NOT intersecting (scrolled past)
+        setShowStickyBar(!entry.isIntersecting)
+      },
+      {
+        root: null,
+        rootMargin: '-80px 0px 0px 0px', // Account for sticky header
+        threshold: 0,
+      }
+    )
+
+    observer.observe(mainStatRef.current)
+    return () => observer.disconnect()
+  }, [data]) // Re-run when data loads since the ref element might not exist initially
+
+  const scrollToMainStat = () => {
+    mainStatRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
 
   const probability = useMemo(
     () => (data ? computeOverallProbability(selection, data) : 0),
@@ -245,6 +333,7 @@ function App() {
         summary={summary}
         estimated={estimated}
         probability={safeProbability}
+        mainStatRef={mainStatRef}
       />
     )
 
@@ -259,6 +348,16 @@ function App() {
       
       {/* Grid overlay */}
       <div className="pointer-events-none fixed inset-0 grid-pattern opacity-50" />
+      
+      {/* Sticky Stats Bar - only on home route */}
+      {route === 'home' && data && (
+        <StickyStatBar
+          estimated={estimated}
+          probability={safeProbability}
+          visible={showStickyBar}
+          onScrollToTop={scrollToMainStat}
+        />
+      )}
       
       <div className="relative z-10">
         <SiteHeader currentRoute={route} onNavigate={navigate} />
@@ -278,6 +377,7 @@ type HomePageProps = {
   summary: string
   estimated: number
   probability: number
+  mainStatRef: React.RefObject<HTMLDivElement | null>
 }
 
 const HomePage = ({
@@ -289,6 +389,7 @@ const HomePage = ({
   summary,
   estimated,
   probability,
+  mainStatRef,
 }: HomePageProps) => (
   <div className="space-y-12">
     {/* Hero Section */}
@@ -320,21 +421,23 @@ const HomePage = ({
       </div>
     ) : null}
 
-    {data ? (
-      <MainStat
-        total={data.totalPopulation}
-        estimated={estimated}
-        probability={probability}
-        summary={summary}
-        onReset={resetFilters}
-      />
-    ) : (
-      <section className="glass gradient-border flex flex-col items-center gap-4 rounded-3xl p-8 text-center sm:p-12">
-        <div className="h-16 w-2/3 animate-pulse rounded-lg bg-dark-400" />
-        <div className="h-4 w-1/2 animate-pulse rounded bg-dark-400" />
-        <div className="h-4 w-3/5 animate-pulse rounded bg-dark-400" />
-      </section>
-    )}
+    <div ref={mainStatRef}>
+      {data ? (
+        <MainStat
+          total={data.totalPopulation}
+          estimated={estimated}
+          probability={probability}
+          summary={summary}
+          onReset={resetFilters}
+        />
+      ) : (
+        <section className="glass gradient-border flex flex-col items-center gap-4 rounded-3xl p-8 text-center sm:p-12">
+          <div className="h-16 w-2/3 animate-pulse rounded-lg bg-dark-400" />
+          <div className="h-4 w-1/2 animate-pulse rounded bg-dark-400" />
+          <div className="h-4 w-3/5 animate-pulse rounded bg-dark-400" />
+        </section>
+      )}
+    </div>
 
     {/* Filters Section */}
     <section className="space-y-6">
