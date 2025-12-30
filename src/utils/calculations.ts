@@ -8,6 +8,9 @@ import type {
   SexKey,
   AgeKey,
   ChildrenKey,
+  IncomeKey,
+  EducationKey,
+  HouseholdTypeKey,
 } from '../types'
 
 export type SelectionState = {
@@ -17,6 +20,9 @@ export type SelectionState = {
   employment: Set<EmploymentKey>
   age: Set<AgeKey>
   children: Set<ChildrenKey>
+  income: Set<IncomeKey>
+  education: Set<EducationKey>
+  householdType: Set<HouseholdTypeKey>
 }
 
 export const computeDimensionProbability = (
@@ -44,6 +50,9 @@ export const computeOverallProbability = (
     ['employment', selection.employment, data.dimensions.employment],
     ['age', selection.age, data.dimensions.age],
     ['children', selection.children, data.dimensions.children],
+    ['income', selection.income, data.dimensions.income],
+    ['education', selection.education, data.dimensions.education],
+    ['householdType', selection.householdType, data.dimensions.householdType],
   ]
 
   return dimensionEntries.reduce((prob, [, selected, shares]) => {
@@ -107,6 +116,27 @@ export const buildFilterSummary = (
   if (selection.children.size) {
     parts.push(
       `Household: ${Array.from(selection.children)
+        .map((key) => labels[key] ?? key)
+        .join(', ')}`,
+    )
+  }
+  if (selection.income.size) {
+    parts.push(
+      `Income: ${Array.from(selection.income)
+        .map((key) => labels[key] ?? key)
+        .join(', ')}`,
+    )
+  }
+  if (selection.education.size) {
+    parts.push(
+      `Education: ${Array.from(selection.education)
+        .map((key) => labels[key] ?? key)
+        .join(', ')}`,
+    )
+  }
+  if (selection.householdType.size) {
+    parts.push(
+      `Household Type: ${Array.from(selection.householdType)
         .map((key) => labels[key] ?? key)
         .join(', ')}`,
     )

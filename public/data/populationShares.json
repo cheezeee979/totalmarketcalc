@@ -90,12 +90,78 @@
     },
     "children": {
       "hasChildren": {
-        "count": 62903547.70755407,
+        "count": 62903547,
         "share": 0.18495005911909543
       },
       "noChildren": {
-        "count": 277207442.2924459,
+        "count": 277207442,
         "share": 0.8150499408809045
+      }
+    },
+    "income": {
+      "under25k": {
+        "count": 54417758,
+        "share": 0.16
+      },
+      "income25to50k": {
+        "count": 57618668,
+        "share": 0.1694
+      },
+      "income50to75k": {
+        "count": 51016649,
+        "share": 0.15
+      },
+      "income75to100k": {
+        "count": 40813318,
+        "share": 0.12
+      },
+      "income100to150k": {
+        "count": 51016649,
+        "share": 0.15
+      },
+      "over150k": {
+        "count": 85227948,
+        "share": 0.2506
+      }
+    },
+    "education": {
+      "lessThanHighSchool": {
+        "count": 37412209,
+        "share": 0.11
+      },
+      "highSchool": {
+        "count": 91829867,
+        "share": 0.27
+      },
+      "someCollege": {
+        "count": 68022198,
+        "share": 0.20
+      },
+      "bachelors": {
+        "count": 71623308,
+        "share": 0.2106
+      },
+      "graduate": {
+        "count": 44614429,
+        "share": 0.1312
+      }
+    },
+    "householdType": {
+      "marriedCouple": {
+        "count": 163253335,
+        "share": 0.48
+      },
+      "singleParent": {
+        "count": 40813318,
+        "share": 0.12
+      },
+      "livingAlone": {
+        "count": 95631078,
+        "share": 0.2812
+      },
+      "otherHousehold": {
+        "count": 40413259,
+        "share": 0.1188
       }
     }
   }

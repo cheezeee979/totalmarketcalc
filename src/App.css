@@ -1,42 +1,126 @@
+/* App-specific styles - most styling handled via Tailwind in index.css */
+
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  min-height: 100vh;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* Hero section ambient glow */
+.hero-glow {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.4;
+  pointer-events: none;
+  animation: float 8s ease-in-out infinite;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+.hero-glow-cyan {
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.4) 0%, transparent 70%);
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.hero-glow-pink {
+  background: radial-gradient(circle, rgba(217, 70, 239, 0.25) 0%, transparent 70%);
+  top: 100px;
+  right: -200px;
+  animation-delay: -2s;
+}
+
+.hero-glow-blue {
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%);
+  bottom: -100px;
+  left: -200px;
+  animation-delay: -4s;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) translateX(-50%);
   }
-  to {
-    transform: rotate(360deg);
+  50% {
+    transform: translateY(-30px) translateX(-50%);
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+/* Number counter animation */
+.number-counter {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Stat card pulse effect */
+.stat-pulse {
+  animation: stat-pulse 3s ease-in-out infinite;
+}
+
+@keyframes stat-pulse {
+  0%, 100% {
+    box-shadow: 
+      0 0 0 0 rgba(6, 182, 212, 0),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  50% {
+    box-shadow: 
+      0 0 40px rgba(6, 182, 212, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 }
 
-.card {
-  padding: 2em;
+/* CTA button shimmer */
+.cta-button {
+  position: relative;
+  overflow: hidden;
 }
 
-.read-the-docs {
-  color: #888;
+.cta-button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.cta-button:hover::after {
+  left: 100%;
+}
+
+/* Filter card hover state */
+.filter-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.filter-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.3),
+    0 0 1px rgba(6, 182, 212, 0.5);
+}
+
+/* Nav link active indicator */
+.nav-active {
+  position: relative;
+}
+
+.nav-active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+  border-radius: 1px;
 }
