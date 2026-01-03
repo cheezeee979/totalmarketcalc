@@ -1,0 +1,32 @@
+{
+  "traits": [
+    {
+      "key": "smokes",
+      "label": "Smokes (current)",
+      "source": "BRFSS 2024",
+      "type": "modeled",
+      "universe": "adults_18plus",
+      "definition_notes": "Current cigarette smoker using CDC recode (_RFSMOK3 if available). Fallback derives from SMOKE100 (ever smoked 100 cigarettes) and SMOKDAY2 (current frequency).",
+      "file": "traits/smokes.json"
+    },
+    {
+      "key": "physically_active",
+      "label": "Physically active (any leisure-time activity)",
+      "source": "BRFSS 2024",
+      "type": "modeled",
+      "universe": "adults_18plus",
+      "definition_notes": "Adults reporting any leisure-time physical activity. Uses _TOTINDA recode when present; otherwise derives from activity questions.",
+      "file": "traits/physically_active.json"
+    },
+    {
+      "key": "high_childcare_time",
+      "label": "High childcare time (\u2265 60 min/day)",
+      "source": "ATUS",
+      "type": "modeled",
+      "universe": "adults_18plus",
+      "definition_notes": "Respondents with at least 60 minutes per day caring for/helping household children. Derived from activity summary columns (t0301* preferred, falling back to t03* if needed).",
+      "file": "traits/high_childcare_time.json"
+    }
+  ],
+  "generatedAt": "2025-12-30T06:30:23.939Z"
+}

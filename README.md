@@ -11,7 +11,7 @@ npm run dev
 
 ## Data refresh (Census API)
 
-The app ships with a placeholder dataset in `public/data/populationShares.json` so it runs offline. To fetch current ACS data:
+The app ships with placeholder datasets so it runs offline. To fetch current ACS data:
 
 1) Create `.env` in the project root:
 ```
@@ -24,6 +24,24 @@ npm run fetch-data
 ```
 
 This calls the ACS 1-year endpoints listed in the PRD, computes category shares, and rewrites `public/data/populationShares.json`. `CENSUS_API_KEY` improves reliability (avoids rate limits). Edit `CENSUS_YEAR` to target another year (default: `2024`).
+
+## Modeled traits (BRFSS + ATUS)
+
+Offline scripts turn BRFSS/ATUS microdata into small JSON artifacts that power the “Modeled (Inferred)” filters. Place raw files under:
+
+- `data/raw/brfss/2024/` (XPT)
+- `data/raw/atus/` (CSV extracts for respondent + activity summary)
+
+Then run:
+```bash
+npm run build:modeled-data
+```
+This will:
+- Build the ACS cell backbone (`data/derived/acs_cells.json`)
+- Fit weighted logistic regressions on BRFSS/ATUS and emit trait probabilities (`data/derived/traits/*.json`)
+- Validate coverage and write `data/derived/traits_manifest.json`
+
+Outputs are copied into `public/data/derived/` for runtime use. Python deps live in `scripts/modeling/requirements.txt`.
 
 ## Build for production
 

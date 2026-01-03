@@ -8,7 +8,11 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "fetch-data": "tsx scripts/fetchCensusData.ts"
+    "fetch-data": "tsx scripts/fetchCensusData.ts",
+    "build:acs-cells": "node --experimental-strip-types scripts/build/build_acs_cells.ts",
+    "build:traits": "python3 scripts/modeling/build_brfss_traits.py && python3 scripts/modeling/build_atus_traits.py && python3 scripts/modeling/validate_traits.py",
+    "build:modeled-data": "npm run build:acs-cells && npm run build:traits",
+    "test": "vitest"
   },
   "dependencies": {
     "react": "^19.2.0",
@@ -31,6 +35,7 @@
     "tsx": "^4.21.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
-    "vite": "^7.2.4"
+    "vite": "^7.2.4",
+    "vitest": "^2.1.8"
   }
 }

@@ -1,0 +1,20 @@
+{
+  "traits": [
+    {
+      "key": "high_childcare_time",
+      "label": "High childcare time (≥ 60 min/day)",
+      "source": "ATUS",
+      "universe": "adults_18plus",
+      "type": "modeled",
+      "definition_notes": "Respondents with at least 60 minutes per day caring for/helping household children. Derived from activity summary columns (t0301* preferred, falling back to t03* if needed).",
+      "label_rule": {
+        "kind": "atus_childcare_minutes",
+        "threshold_minutes": 60
+      },
+      "weight_vars": ["TUFINLWGT"],
+      "sex_vars": ["TESEX"],
+      "age_vars": ["TEAGE"],
+      "region_vars": ["TRERNWA", "GEREG"]
+    }
+  ]
+}

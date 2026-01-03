@@ -5,23 +5,23 @@ import { FilterCheckbox } from './components/FilterCheckbox'
 import { MainStat } from './components/MainStat'
 import {
   buildFilterSummary,
-  computeEstimatedPopulation,
-  computeOverallProbability,
   formatNumber,
   formatPercent,
 } from './utils/calculations'
+import { loadAppData } from './utils/dataLoader'
+import { estimatePopulation } from './utils/populationEngine'
 import { useAnimatedNumber } from './hooks/useAnimatedNumber'
 import type {
+  AppData,
   EmploymentKey,
-  PopulationData,
   RaceKey,
   RegionKey,
   SexKey,
-  AgeKey,
   ChildrenKey,
   IncomeKey,
   EducationKey,
   HouseholdTypeKey,
+  AgeBandKey,
 } from './types'
 import type { SelectionState } from './utils/calculations'
 
@@ -70,11 +70,12 @@ const labelLookup: Record<string, string> = {
   employed: 'Employed',
   unemployed: 'Unemployed',
   notInLabor: 'Not in labor force',
-  age0to17: '0-17',
-  age18to34: '18-34',
-  age35to54: '35-54',
-  age55to74: '55-74',
-  age75plus: '75+',
+  '18_24': '18-24',
+  '25_34': '25-34',
+  '35_44': '35-44',
+  '45_54': '45-54',
+  '55_64': '55-64',
+  '65_plus': '65+',
   hasChildren: 'Has children in household',
   noChildren: 'No children in household',
   // Income labels
@@ -101,8 +102,9 @@ const createBlankSelection = (): SelectionState => ({
   sex: new Set(),
   race: new Set(),
   region: new Set(),
+  ageBand: new Set(),
+  modeledTraits: new Set(),
   employment: new Set(),
-  age: new Set(),
   children: new Set(),
   income: new Set(),
   education: new Set(),
@@ -134,12 +136,13 @@ const employmentOptions: Array<{ key: EmploymentKey; label: string; description:
   { key: 'notInLabor', label: 'Not in labor force', description: 'DP03_0007E (16+)' },
 ]
 
-const ageOptions: Array<{ key: AgeKey; label: string; description: string }> = [
-  { key: 'age0to17', label: '0-17', description: 'ACS B01001 aggregated youth population' },
-  { key: 'age18to34', label: '18-34', description: 'ACS B01001 young adult population' },
-  { key: 'age35to54', label: '35-54', description: 'ACS B01001 prime working years' },
-  { key: 'age55to74', label: '55-74', description: 'ACS B01001 older adult population' },
-  { key: 'age75plus', label: '75+', description: 'ACS B01001 seniors' },
+const ageOptions: Array<{ key: AgeBandKey; label: string; description: string }> = [
+  { key: '18_24', label: '18-24', description: 'ACS B01001 recode · young adults' },
+  { key: '25_34', label: '25-34', description: 'ACS B01001 recode · early career' },
+  { key: '35_44', label: '35-44', description: 'ACS B01001 recode · mid career' },
+  { key: '45_54', label: '45-54', description: 'ACS B01001 recode · peak earning' },
+  { key: '55_64', label: '55-64', description: 'ACS B01001 recode · nearing retirement' },
+  { key: '65_plus', label: '65+', description: 'ACS B01001 recode · older adults' },
 ]
 
 const childrenOptions: Array<{ key: ChildrenKey; label: string; description: string }> = [
@@ -241,7 +244,7 @@ const StickyStatBar = ({ estimated, probability, visible, onScrollToTop }: Stick
 
 function App() {
   const { route, navigate } = useInAppRoute()
-  const [data, setData] = useState<PopulationData | null>(null)
+  const [data, setData] = useState<AppData | null>(null)
   const [selection, setSelection] = useState<SelectionState>(createBlankSelection)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
@@ -250,14 +253,18 @@ function App() {
 
   useEffect(() => {
     const load = async () => {
+      setLoading(true)
       try {
-        const res = await fetch('/data/populationShares.json')
-        if (!res.ok) throw new Error('Failed to load data')
-        const json = (await res.json()) as PopulationData
-        setData(json)
+        const payload = await loadAppData()
+        setData(payload)
+        setError(null)
       } catch (err) {
         console.error(err)
-        setError('We could not load the Census-derived data. Please try refreshing.')
+        const message =
+          err instanceof Error
+            ? err.message
+            : 'We could not load the Census-derived data. Please try refreshing.'
+        setError(message)
       } finally {
         setLoading(false)
       }
@@ -290,19 +297,34 @@ function App() {
     mainStatRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
-  const probability = useMemo(
-    () => (data ? computeOverallProbability(selection, data) : 0),
-    [selection, data],
+  const estimateResult = useMemo(() => {
+    if (!data) return { estimated: 0, probability: 0, shareFactor: 1, matchingCells: 0, error: null as string | null }
+    try {
+      const result = estimatePopulation({ selection, modeled: data.modeled, population: data.population })
+      return { ...result, error: null as string | null }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'We could not compute the estimate. Run npm run build:modeled-data.'
+      return { estimated: 0, probability: 0, shareFactor: 1, matchingCells: 0, error: message }
+    }
+  }, [data, selection])
+
+  const totalBase = data?.modeled.acsCells.total_pop ?? 0
+  const probability = estimateResult.probability
+  const estimated = estimateResult.estimated
+  const activeError = error ?? estimateResult.error
+
+  const traitLabels = useMemo(
+    () =>
+      data?.modeled.manifest.traits.reduce<Record<string, string>>((acc, trait) => {
+        acc[trait.key] = `${trait.label} (Modeled)`
+        return acc
+      }, {}) ?? {},
+    [data],
   )
 
-  const safeProbability = Math.min(1, Math.max(0, probability))
-
-  const estimated = useMemo(
-    () => (data ? computeEstimatedPopulation(data.totalPopulation, safeProbability) : 0),
-    [data, safeProbability],
-  )
-
-  const summary = buildFilterSummary(selection, labelLookup)
+  const summaryLabels = { ...labelLookup, ...traitLabels }
+  const summary = buildFilterSummary(selection, summaryLabels)
 
   const toggleSelection = (dimension: keyof SelectionState, key: string, checked: boolean) => {
     setSelection((prev) => {
@@ -326,7 +348,7 @@ function App() {
     ) : (
       <HomePage
         data={data}
-        error={error}
+        error={activeError}
         selection={selection}
         toggleSelection={toggleSelection}
         resetFilters={resetFilters}
@@ -369,7 +391,7 @@ function App() {
 }
 
 type HomePageProps = {
-  data: PopulationData | null
+  data: AppData | null
   error: string | null
   selection: SelectionState
   toggleSelection: (dimension: keyof SelectionState, key: string, checked: boolean) => void
@@ -424,7 +446,7 @@ const HomePage = ({
     <div ref={mainStatRef}>
       {data ? (
         <MainStat
-          total={data.totalPopulation}
+          total={data.modeled.acsCells.total_pop}
           estimated={estimated}
           probability={probability}
           summary={summary}
@@ -502,7 +524,7 @@ const HomePage = ({
 
         <FilterCard
           title="Age Bands"
-          description="Broad age groups aggregated from ACS B01001."
+          description="Adult age bands (18+) aggregated from ACS B01001 for modeled cells."
           icon={
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -510,18 +532,58 @@ const HomePage = ({
           }
         >
           <fieldset className="space-y-2" aria-label="Age bands">
-            <legend className="mb-2 text-xs font-semibold uppercase tracking-wider text-accent-400">Age</legend>
+            <legend className="mb-2 text-xs font-semibold uppercase tracking-wider text-accent-400">Age (18+)</legend>
             {ageOptions.map((option) => (
               <FilterCheckbox
                 key={option.key}
                 id={`age-${option.key}`}
                 label={option.label}
                 description={option.description}
-                checked={selection.age.has(option.key)}
-                onChange={(checked) => toggleSelection('age', option.key, checked)}
+                checked={selection.ageBand.has(option.key)}
+                onChange={(checked) => toggleSelection('ageBand', option.key, checked)}
               />
             ))}
           </fieldset>
+        </FilterCard>
+
+        <FilterCard
+          title="Modeled (Inferred)"
+          description="Post-stratified survey traits from BRFSS + ATUS. Applied to ACS cells at runtime."
+          icon={
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h6m4 0a10 10 0 11-20 0 10 10 0 0120 0z" />
+            </svg>
+          }
+        >
+          {data?.modeled ? (
+            <fieldset className="space-y-2" aria-label="Modeled traits">
+              <legend className="mb-2 text-xs font-semibold uppercase tracking-wider text-electric-400">
+                Modeled (Inferred)
+              </legend>
+              {data.modeled.manifest.traits.length ? (
+                data.modeled.manifest.traits.map((trait) => (
+                  <FilterCheckbox
+                    key={trait.key}
+                    id={`modeled-${trait.key}`}
+                    label={trait.label}
+                    badge="Modeled"
+                    description={`${trait.source} · ${trait.universe ?? '18+'}`}
+                    checked={selection.modeledTraits.has(trait.key)}
+                    onChange={(checked) => toggleSelection('modeledTraits', trait.key, checked)}
+                  />
+                ))
+              ) : (
+                <p className="text-sm text-slate-500">
+                  No modeled traits available. Run npm run build:modeled-data to generate them.
+                </p>
+              )}
+            </fieldset>
+          ) : (
+            <div className="text-sm text-slate-500">Modeled traits will load after data is ready.</div>
+          )}
+          <p className="pt-2 text-xs text-slate-500">
+            Estimated with weighted models and ACS post-stratification; not direct Census counts.
+          </p>
         </FilterCard>
 
         <FilterCard
@@ -746,7 +808,7 @@ const AboutPage = () => (
 )
 
 type DataPageProps = {
-  data: PopulationData | null
+  data: AppData | null
   loading: boolean
 }
 
@@ -760,13 +822,50 @@ const DataPage = ({ data, loading }: DataPageProps) => (
         Data & <span className="text-gradient-electric">Methodology</span>
       </h1>
       <p className="mx-auto max-w-2xl text-lg text-slate-400">
-        Powered by American Community Survey 1-year tables. Estimates assume independence across
-        selected dimensions and are scaled to the total U.S. population.
+        Powered by American Community Survey 1-year tables plus modeled probabilities from BRFSS and
+        ATUS microdata. Everything is aggregated—no identifiable records.
       </p>
     </div>
 
     {data ? (
-      <AboutPanel year={data.meta.year} generatedAt={data.meta.generatedAt} />
+      <>
+        <AboutPanel
+          acsYear={data.modeled.acsCells.meta.year}
+          generatedAt={data.modeled.acsCells.meta.generatedAt}
+          totalPopulation={data.modeled.acsCells.total_pop}
+          traits={data.modeled.manifest.traits}
+        />
+        <section className="glass gradient-border rounded-3xl p-6 text-sm text-slate-300 sm:p-8">
+          <div className="mb-4 flex items-center gap-2">
+            <span className="rounded-full border border-electric-500/40 bg-electric-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-electric-300">
+              Modeled (Inferred)
+            </span>
+            <p className="text-slate-400">Offline survey models applied to ACS cells.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {data.modeled.manifest.traits.map((trait) => (
+              <div key={trait.key} className="rounded-xl border border-dark-400/50 bg-dark-700/40 p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-white">{trait.label}</p>
+                    <p className="text-xs text-slate-500">{trait.source}</p>
+                  </div>
+                  <span className="rounded-full border border-accent-500/30 bg-accent-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-accent-300">
+                    Modeled
+                  </span>
+                </div>
+                {trait.definition_notes ? (
+                  <p className="mt-2 text-xs text-slate-400">{trait.definition_notes}</p>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 rounded-lg border border-dark-400 bg-dark-700/40 p-3 text-xs text-slate-400">
+            Limitations: modeled traits assume conditional independence; survey nonresponse and sampling error may
+            introduce bias. Re-run <code className="rounded bg-dark-500 px-1 py-0.5 text-[11px]">npm run build:modeled-data</code> after updating microdata.
+          </div>
+        </section>
+      </>
     ) : (
       <div className="glass gradient-border rounded-3xl p-6 text-sm text-slate-400">
         {loading ? (
@@ -843,7 +942,7 @@ const SiteHeader = ({ currentRoute, onNavigate }: SiteHeaderProps) => {
   )
 }
 
-const SiteFooter = ({ data }: { data: PopulationData | null }) => (
+const SiteFooter = ({ data }: { data: AppData | null }) => (
   <footer className="border-t border-white/5 bg-dark-900/50">
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -895,7 +994,7 @@ const SiteFooter = ({ data }: { data: PopulationData | null }) => (
           {data ? (
             <span className="inline-flex items-center gap-2 rounded-full border border-dark-300 bg-dark-600/50 px-3 py-1 text-xs text-slate-400">
               <span className="h-1.5 w-1.5 rounded-full bg-green-500"></span>
-              Data: {data.meta.year} · {formatNumber(data.totalPopulation)} total
+              Data: {data.modeled.acsCells.meta.year} · {formatNumber(data.modeled.acsCells.total_pop)} base
             </span>
           ) : null}
         </div>

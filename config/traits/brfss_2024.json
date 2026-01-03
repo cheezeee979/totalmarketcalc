@@ -1,0 +1,38 @@
+{
+  "traits": [
+    {
+      "key": "smokes",
+      "label": "Smokes (current)",
+      "source": "BRFSS 2024",
+      "universe": "adults_18plus",
+      "type": "modeled",
+      "definition_notes": "Current cigarette smoker using CDC recode (_RFSMOK3 if available). Fallback derives from SMOKE100 (ever smoked 100 cigarettes) and SMOKDAY2 (current frequency).",
+      "label_rule": {
+        "kind": "brfss_variable",
+        "preferred_vars": ["_RFSMOK3"],
+        "fallback": ["SMOKE100", "SMOKDAY2"]
+      },
+      "weight_vars": ["_LLCPWT", "LLCPWT"],
+      "sex_vars": ["SEXVAR", "SEX"],
+      "age_vars": ["_AGEG5YR"],
+      "state_vars": ["_STATE", "STATE"]
+    },
+    {
+      "key": "physically_active",
+      "label": "Physically active (any leisure-time activity)",
+      "source": "BRFSS 2024",
+      "universe": "adults_18plus",
+      "type": "modeled",
+      "definition_notes": "Adults reporting any leisure-time physical activity. Uses _TOTINDA recode when present; otherwise derives from activity questions.",
+      "label_rule": {
+        "kind": "brfss_variable",
+        "preferred_vars": ["_TOTINDA"],
+        "fallback": []
+      },
+      "weight_vars": ["_LLCPWT", "LLCPWT"],
+      "sex_vars": ["SEXVAR", "SEX"],
+      "age_vars": ["_AGEG5YR"],
+      "state_vars": ["_STATE", "STATE"]
+    }
+  ]
+}

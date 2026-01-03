@@ -1,0 +1,348 @@
+{
+  "meta": {
+    "year": 2024,
+    "source": "ACS 1-year",
+    "table": "B01001",
+    "generatedAt": "2025-12-30T06:30:23.939Z",
+    "note": "Reused existing ACS cells because ACS API fetch failed."
+  },
+  "total_pop": 267181678,
+  "cells": [
+    {
+      "cell_id": "ne_male_18_24",
+      "region": "northeast",
+      "sex": "male",
+      "age_band": "18_24",
+      "pop": 2632168
+    },
+    {
+      "cell_id": "ne_male_25_34",
+      "region": "northeast",
+      "sex": "male",
+      "age_band": "25_34",
+      "pop": 3883598
+    },
+    {
+      "cell_id": "ne_male_35_44",
+      "region": "northeast",
+      "sex": "male",
+      "age_band": "35_44",
+      "pop": 3829859
+    },
+    {
+      "cell_id": "ne_male_45_54",
+      "region": "northeast",
+      "sex": "male",
+      "age_band": "45_54",
+      "pop": 3415098
+    },
+    {
+      "cell_id": "ne_male_55_64",
+      "region": "northeast",
+      "sex": "male",
+      "age_band": "55_64",
+      "pop": 3716586
+    },
+    {
+      "cell_id": "ne_male_65_plus",
+      "region": "northeast",
+      "sex": "male",
+      "age_band": "65_plus",
+      "pop": 5001147
+    },
+    {
+      "cell_id": "ne_female_18_24",
+      "region": "northeast",
+      "sex": "female",
+      "age_band": "18_24",
+      "pop": 2589116
+    },
+    {
+      "cell_id": "ne_female_25_34",
+      "region": "northeast",
+      "sex": "female",
+      "age_band": "25_34",
+      "pop": 3857212
+    },
+    {
+      "cell_id": "ne_female_35_44",
+      "region": "northeast",
+      "sex": "female",
+      "age_band": "35_44",
+      "pop": 3801287
+    },
+    {
+      "cell_id": "ne_female_45_54",
+      "region": "northeast",
+      "sex": "female",
+      "age_band": "45_54",
+      "pop": 3484833
+    },
+    {
+      "cell_id": "ne_female_55_64",
+      "region": "northeast",
+      "sex": "female",
+      "age_band": "55_64",
+      "pop": 3910780
+    },
+    {
+      "cell_id": "ne_female_65_plus",
+      "region": "northeast",
+      "sex": "female",
+      "age_band": "65_plus",
+      "pop": 6179755
+    },
+    {
+      "cell_id": "mw_male_18_24",
+      "region": "midwest",
+      "sex": "male",
+      "age_band": "18_24",
+      "pop": 3316908
+    },
+    {
+      "cell_id": "mw_male_25_34",
+      "region": "midwest",
+      "sex": "male",
+      "age_band": "25_34",
+      "pop": 4656794
+    },
+    {
+      "cell_id": "mw_male_35_44",
+      "region": "midwest",
+      "sex": "male",
+      "age_band": "35_44",
+      "pop": 4573106
+    },
+    {
+      "cell_id": "mw_male_45_54",
+      "region": "midwest",
+      "sex": "male",
+      "age_band": "45_54",
+      "pop": 4092682
+    },
+    {
+      "cell_id": "mw_male_55_64",
+      "region": "midwest",
+      "sex": "male",
+      "age_band": "55_64",
+      "pop": 4278096
+    },
+    {
+      "cell_id": "mw_male_65_plus",
+      "region": "midwest",
+      "sex": "male",
+      "age_band": "65_plus",
+      "pop": 5890449
+    },
+    {
+      "cell_id": "mw_female_18_24",
+      "region": "midwest",
+      "sex": "female",
+      "age_band": "18_24",
+      "pop": 3146533
+    },
+    {
+      "cell_id": "mw_female_25_34",
+      "region": "midwest",
+      "sex": "female",
+      "age_band": "25_34",
+      "pop": 4531286
+    },
+    {
+      "cell_id": "mw_female_35_44",
+      "region": "midwest",
+      "sex": "female",
+      "age_band": "35_44",
+      "pop": 4480897
+    },
+    {
+      "cell_id": "mw_female_45_54",
+      "region": "midwest",
+      "sex": "female",
+      "age_band": "45_54",
+      "pop": 4048044
+    },
+    {
+      "cell_id": "mw_female_55_64",
+      "region": "midwest",
+      "sex": "female",
+      "age_band": "55_64",
+      "pop": 4389039
+    },
+    {
+      "cell_id": "mw_female_65_plus",
+      "region": "midwest",
+      "sex": "female",
+      "age_band": "65_plus",
+      "pop": 7068932
+    },
+    {
+      "cell_id": "so_male_18_24",
+      "region": "south",
+      "sex": "male",
+      "age_band": "18_24",
+      "pop": 6250633
+    },
+    {
+      "cell_id": "so_male_25_34",
+      "region": "south",
+      "sex": "male",
+      "age_band": "25_34",
+      "pop": 8894250
+    },
+    {
+      "cell_id": "so_male_35_44",
+      "region": "south",
+      "sex": "male",
+      "age_band": "35_44",
+      "pop": 8949161
+    },
+    {
+      "cell_id": "so_male_45_54",
+      "region": "south",
+      "sex": "male",
+      "age_band": "45_54",
+      "pop": 7955515
+    },
+    {
+      "cell_id": "so_male_55_64",
+      "region": "south",
+      "sex": "male",
+      "age_band": "55_64",
+      "pop": 7792010
+    },
+    {
+      "cell_id": "so_male_65_plus",
+      "region": "south",
+      "sex": "male",
+      "age_band": "65_plus",
+      "pop": 10455546
+    },
+    {
+      "cell_id": "so_female_18_24",
+      "region": "south",
+      "sex": "female",
+      "age_band": "18_24",
+      "pop": 5962076
+    },
+    {
+      "cell_id": "so_female_25_34",
+      "region": "south",
+      "sex": "female",
+      "age_band": "25_34",
+      "pop": 8831699
+    },
+    {
+      "cell_id": "so_female_35_44",
+      "region": "south",
+      "sex": "female",
+      "age_band": "35_44",
+      "pop": 9020561
+    },
+    {
+      "cell_id": "so_female_45_54",
+      "region": "south",
+      "sex": "female",
+      "age_band": "45_54",
+      "pop": 8177666
+    },
+    {
+      "cell_id": "so_female_55_64",
+      "region": "south",
+      "sex": "female",
+      "age_band": "55_64",
+      "pop": 8288341
+    },
+    {
+      "cell_id": "so_female_65_plus",
+      "region": "south",
+      "sex": "female",
+      "age_band": "65_plus",
+      "pop": 12849773
+    },
+    {
+      "cell_id": "we_male_18_24",
+      "region": "west",
+      "sex": "male",
+      "age_band": "18_24",
+      "pop": 3805733
+    },
+    {
+      "cell_id": "we_male_25_34",
+      "region": "west",
+      "sex": "male",
+      "age_band": "25_34",
+      "pop": 5925539
+    },
+    {
+      "cell_id": "we_male_35_44",
+      "region": "west",
+      "sex": "male",
+      "age_band": "35_44",
+      "pop": 5811328
+    },
+    {
+      "cell_id": "we_male_45_54",
+      "region": "west",
+      "sex": "male",
+      "age_band": "45_54",
+      "pop": 4865052
+    },
+    {
+      "cell_id": "we_male_55_64",
+      "region": "west",
+      "sex": "male",
+      "age_band": "55_64",
+      "pop": 4611288
+    },
+    {
+      "cell_id": "we_male_65_plus",
+      "region": "west",
+      "sex": "male",
+      "age_band": "65_plus",
+      "pop": 6336169
+    },
+    {
+      "cell_id": "we_female_18_24",
+      "region": "west",
+      "sex": "female",
+      "age_band": "18_24",
+      "pop": 3567792
+    },
+    {
+      "cell_id": "we_female_25_34",
+      "region": "west",
+      "sex": "female",
+      "age_band": "25_34",
+      "pop": 5618027
+    },
+    {
+      "cell_id": "we_female_35_44",
+      "region": "west",
+      "sex": "female",
+      "age_band": "35_44",
+      "pop": 5490686
+    },
+    {
+      "cell_id": "we_female_45_54",
+      "region": "west",
+      "sex": "female",
+      "age_band": "45_54",
+      "pop": 4783995
+    },
+    {
+      "cell_id": "we_female_55_64",
+      "region": "west",
+      "sex": "female",
+      "age_band": "55_64",
+      "pop": 4701121
+    },
+    {
+      "cell_id": "we_female_65_plus",
+      "region": "west",
+      "sex": "female",
+      "age_band": "65_plus",
+      "pop": 7463512
+    }
+  ]
+}

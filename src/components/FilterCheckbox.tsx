@@ -2,11 +2,12 @@ type Props = {
   id: string
   label: string
   description?: string
+  badge?: string
   checked: boolean
   onChange: (checked: boolean) => void
 }
 
-export const FilterCheckbox = ({ id, label, description, checked, onChange }: Props) => (
+export const FilterCheckbox = ({ id, label, description, badge, checked, onChange }: Props) => (
   <label
     htmlFor={id}
     className={`group flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 transition-all duration-200 ${
@@ -44,8 +45,15 @@ export const FilterCheckbox = ({ id, label, description, checked, onChange }: Pr
       </div>
     </div>
     <div className="min-w-0 flex-1">
-      <div className={`text-sm font-medium transition-colors ${checked ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
-        {label}
+      <div className="flex items-center gap-2">
+        <div className={`text-sm font-medium transition-colors ${checked ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
+          {label}
+        </div>
+        {badge ? (
+          <span className="rounded-full border border-electric-500/40 bg-electric-500/10 px-2 text-[10px] font-semibold uppercase tracking-wide text-electric-300">
+            {badge}
+          </span>
+        ) : null}
       </div>
       {description && (
         <p className="mt-0.5 truncate text-xs text-slate-500">{description}</p>

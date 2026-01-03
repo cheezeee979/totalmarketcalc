@@ -13,6 +13,8 @@ dist-ssr
 *.local
 .env
 .env.local
+data/raw/
+*.parquet
 
 # Editor directories and files
 .vscode/*

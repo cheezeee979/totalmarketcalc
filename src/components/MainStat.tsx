@@ -42,7 +42,7 @@ export const MainStat = ({ estimated, probability, summary, onReset, total }: Pr
             </span>
             <span className="text-xl font-medium text-accent-400/70">%</span>
           </div>
-          <span className="text-sm text-slate-500">of U.S. population</span>
+          <span className="text-sm text-slate-500">of U.S. adult population (ACS cells)</span>
         </div>
 
         {/* Percent Grid */}
