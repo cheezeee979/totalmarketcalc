@@ -8,8 +8,12 @@
       "age_band",
       "region"
     ],
-    "generatedAt": "2025-12-30T06:30:58.305634+00:00",
-    "definition": "Adults reporting any leisure-time physical activity. Uses _TOTINDA recode when present; otherwise derives from activity questions."
+    "minAge": 18,
+    "universeLabel": "Adults 18+",
+    "regionSupport": "modeled",
+    "generatedAt": "2026-01-04T01:55:37.594695+00:00",
+    "definition": "Adults reporting any leisure-time physical activity. Uses _TOTINDA recode when present.",
+    "implied_prevalence": 0.7755
   },
   "prob_by_cell": {
     "ne_male_18_24": 0.862204,
@@ -59,6 +63,14 @@
     "we_female_35_44": 0.796498,
     "we_female_45_54": 0.775185,
     "we_female_55_64": 0.751814,
-    "we_female_65_plus": 0.721548
+    "we_female_65_plus": 0.721548,
+    "ne_male_0_17": 0.0,
+    "ne_female_0_17": 0.0,
+    "mw_male_0_17": 0.0,
+    "mw_female_0_17": 0.0,
+    "so_male_0_17": 0.0,
+    "so_female_0_17": 0.0,
+    "we_male_0_17": 0.0,
+    "we_female_0_17": 0.0
   }
 }

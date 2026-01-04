@@ -6,7 +6,7 @@ type ApiRow = Array<string>
 
 type RegionKey = 'northeast' | 'midwest' | 'south' | 'west'
 type SexKey = 'male' | 'female'
-type AgeBandKey = '18_24' | '25_34' | '35_44' | '45_54' | '55_64' | '65_plus'
+type AgeBandKey = '0_17' | '18_24' | '25_34' | '35_44' | '45_54' | '55_64' | '65_plus'
 
 const year = process.env.CENSUS_YEAR ?? '2024'
 const apiKey = process.env.CENSUS_API_KEY
@@ -26,8 +26,14 @@ const regionAbbrev: Record<RegionKey, string> = {
   west: 'we',
 }
 
+// B01001 age buckets mapped to our age bands
+// Under 5: B01001_003E (male), B01001_027E (female)
+// 5 to 9: B01001_004E (male), B01001_028E (female)
+// 10 to 14: B01001_005E (male), B01001_029E (female)
+// 15 to 17: B01001_006E (male), B01001_030E (female)
 const ageBands: Record<SexKey, Record<AgeBandKey, string[]>> = {
   male: {
+    '0_17': ['B01001_003E', 'B01001_004E', 'B01001_005E', 'B01001_006E'],
     '18_24': ['B01001_007E', 'B01001_008E', 'B01001_009E', 'B01001_010E'],
     '25_34': ['B01001_011E', 'B01001_012E'],
     '35_44': ['B01001_013E', 'B01001_014E'],
@@ -36,6 +42,7 @@ const ageBands: Record<SexKey, Record<AgeBandKey, string[]>> = {
     '65_plus': ['B01001_020E', 'B01001_021E', 'B01001_022E', 'B01001_023E', 'B01001_024E', 'B01001_025E'],
   },
   female: {
+    '0_17': ['B01001_027E', 'B01001_028E', 'B01001_029E', 'B01001_030E'],
     '18_24': ['B01001_031E', 'B01001_032E', 'B01001_033E', 'B01001_034E'],
     '25_34': ['B01001_035E', 'B01001_036E'],
     '35_44': ['B01001_037E', 'B01001_038E'],
@@ -94,13 +101,15 @@ const fallbackFromPopulationShares = () => {
   console.warn('Building placeholder ACS cells from public/data/populationShares.json (no API access).')
   const shares = JSON.parse(fs.readFileSync(sharesPath, 'utf8'))
   const regionMap: Record<string, string> = { northeast: 'ne', midwest: 'mw', south: 'so', west: 'we' }
+  // Approximate age distribution including under-18 (roughly 22% of population)
   const ageWeights: Record<AgeBandKey, number> = {
-    '18_24': 0.13,
-    '25_34': 0.17,
-    '35_44': 0.18,
-    '45_54': 0.17,
-    '55_64': 0.16,
-    '65_plus': 0.19,
+    '0_17': 0.22,
+    '18_24': 0.10,
+    '25_34': 0.13,
+    '35_44': 0.14,
+    '45_54': 0.13,
+    '55_64': 0.13,
+    '65_plus': 0.15,
   }
   const sexWeights: Record<SexKey, number> = { male: 0.495, female: 0.505 }
   const cells = []
@@ -121,6 +130,7 @@ const fallbackFromPopulationShares = () => {
       source: shares.meta?.source ?? 'ACS 1-year',
       table: 'B01001',
       generatedAt: new Date().toISOString(),
+      universe: 'all_ages',
       note: 'Placeholder split using populationShares.json because ACS API was unreachable.',
     },
     total_pop,
@@ -172,19 +182,27 @@ const run = async () => {
       })
     })
 
+    // Validate total_pop vs sum of cells
+    const summedPop = cells.reduce((sum, cell) => sum + cell.pop, 0)
+    if (Math.abs(summedPop - total_pop) > 1) {
+      console.warn(`total_pop mismatch: computed ${total_pop}, sum of cells ${summedPop}. Using sum.`)
+      total_pop = summedPop
+    }
+
     const payload = {
       meta: {
         year: Number(year),
         source: 'ACS 1-year',
         table: 'B01001',
         generatedAt: new Date().toISOString(),
+        universe: 'all_ages',
       },
       total_pop,
       cells,
     }
 
     writePayload(payload)
-    console.log(`Wrote ${cells.length} cells to data/derived/acs_cells.json`)
+    console.log(`Wrote ${cells.length} cells (all ages) to data/derived/acs_cells.json`)
     return
   } catch (err) {
     console.error(err)

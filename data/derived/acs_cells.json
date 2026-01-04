@@ -3,11 +3,18 @@
     "year": 2024,
     "source": "ACS 1-year",
     "table": "B01001",
-    "generatedAt": "2025-12-30T06:30:23.939Z",
-    "note": "Reused existing ACS cells because ACS API fetch failed."
+    "generatedAt": "2026-01-04T01:55:04.722Z",
+    "universe": "all_ages"
   },
-  "total_pop": 267181678,
+  "total_pop": 340110990,
   "cells": [
+    {
+      "cell_id": "ne_male_0_17",
+      "region": "northeast",
+      "sex": "male",
+      "age_band": "0_17",
+      "pop": 5901155
+    },
     {
       "cell_id": "ne_male_18_24",
       "region": "northeast",
@@ -49,6 +56,13 @@
       "sex": "male",
       "age_band": "65_plus",
       "pop": 5001147
+    },
+    {
+      "cell_id": "ne_female_0_17",
+      "region": "northeast",
+      "sex": "female",
+      "age_band": "0_17",
+      "pop": 5630341
     },
     {
       "cell_id": "ne_female_18_24",
@@ -93,6 +107,13 @@
       "pop": 6179755
     },
     {
+      "cell_id": "mw_male_0_17",
+      "region": "midwest",
+      "sex": "male",
+      "age_band": "0_17",
+      "pop": 7752188
+    },
+    {
       "cell_id": "mw_male_18_24",
       "region": "midwest",
       "sex": "male",
@@ -133,6 +154,13 @@
       "sex": "male",
       "age_band": "65_plus",
       "pop": 5890449
+    },
+    {
+      "cell_id": "mw_female_0_17",
+      "region": "midwest",
+      "sex": "female",
+      "age_band": "0_17",
+      "pop": 7371631
     },
     {
       "cell_id": "mw_female_18_24",
@@ -177,6 +205,13 @@
       "pop": 7068932
     },
     {
+      "cell_id": "so_male_0_17",
+      "region": "south",
+      "sex": "male",
+      "age_band": "0_17",
+      "pop": 14955450
+    },
+    {
       "cell_id": "so_male_18_24",
       "region": "south",
       "sex": "male",
@@ -217,6 +252,13 @@
       "sex": "male",
       "age_band": "65_plus",
       "pop": 10455546
+    },
+    {
+      "cell_id": "so_female_0_17",
+      "region": "south",
+      "sex": "female",
+      "age_band": "0_17",
+      "pop": 14283012
     },
     {
       "cell_id": "so_female_18_24",
@@ -261,6 +303,13 @@
       "pop": 12849773
     },
     {
+      "cell_id": "we_male_0_17",
+      "region": "west",
+      "sex": "male",
+      "age_band": "0_17",
+      "pop": 8746835
+    },
+    {
       "cell_id": "we_male_18_24",
       "region": "west",
       "sex": "male",
@@ -301,6 +350,13 @@
       "sex": "male",
       "age_band": "65_plus",
       "pop": 6336169
+    },
+    {
+      "cell_id": "we_female_0_17",
+      "region": "west",
+      "sex": "female",
+      "age_band": "0_17",
+      "pop": 8288700
     },
     {
       "cell_id": "we_female_18_24",

@@ -9,7 +9,8 @@ import {
   formatPercent,
 } from './utils/calculations'
 import { loadAppData } from './utils/dataLoader'
-import { estimatePopulation } from './utils/populationEngine'
+import { estimatePopulation, type EstimateResult } from './utils/populationEngine'
+import { hasIneligibleAgeBands, getEligibleAgeBands } from './utils/traitHelpers'
 import { useAnimatedNumber } from './hooks/useAnimatedNumber'
 import type {
   AppData,
@@ -22,6 +23,7 @@ import type {
   EducationKey,
   HouseholdTypeKey,
   AgeBandKey,
+  TraitManifestEntry,
 } from './types'
 import type { SelectionState } from './utils/calculations'
 
@@ -70,6 +72,7 @@ const labelLookup: Record<string, string> = {
   employed: 'Employed',
   unemployed: 'Unemployed',
   notInLabor: 'Not in labor force',
+  '0_17': 'Under 18',
   '18_24': '18-24',
   '25_34': '25-34',
   '35_44': '35-44',
@@ -137,6 +140,7 @@ const employmentOptions: Array<{ key: EmploymentKey; label: string; description:
 ]
 
 const ageOptions: Array<{ key: AgeBandKey; label: string; description: string }> = [
+  { key: '0_17', label: 'Under 18', description: 'ACS B01001 recode · children & teens' },
   { key: '18_24', label: '18-24', description: 'ACS B01001 recode · young adults' },
   { key: '25_34', label: '25-34', description: 'ACS B01001 recode · early career' },
   { key: '35_44', label: '35-44', description: 'ACS B01001 recode · mid career' },
@@ -297,21 +301,34 @@ function App() {
     mainStatRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
-  const estimateResult = useMemo(() => {
-    if (!data) return { estimated: 0, probability: 0, shareFactor: 1, matchingCells: 0, error: null as string | null }
+  const estimateResult = useMemo((): EstimateResult & { error: string | null } => {
+    const defaultResult: EstimateResult & { error: string | null } = {
+      estimated: 0,
+      probability: 0,
+      shareFactor: 1,
+      matchingCells: 0,
+      denominatorPop: 0,
+      universeLabel: 'U.S. population (all ages)',
+      nationalModelSelected: false,
+      effectiveMinAge: 0,
+      error: null,
+    }
+    if (!data) return defaultResult
     try {
       const result = estimatePopulation({ selection, modeled: data.modeled, population: data.population })
-      return { ...result, error: null as string | null }
+      return { ...result, error: null }
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'We could not compute the estimate. Run npm run build:modeled-data.'
-      return { estimated: 0, probability: 0, shareFactor: 1, matchingCells: 0, error: message }
+      return { ...defaultResult, error: message }
     }
   }, [data, selection])
 
-  const totalBase = data?.modeled.acsCells.total_pop ?? 0
+  const totalBase = estimateResult.denominatorPop || (data?.modeled.acsCells.total_pop ?? 0)
   const probability = estimateResult.probability
   const estimated = estimateResult.estimated
+  const universeLabel = estimateResult.universeLabel
+  const nationalModelSelected = estimateResult.nationalModelSelected
   const activeError = error ?? estimateResult.error
 
   const traitLabels = useMemo(
@@ -340,6 +357,15 @@ function App() {
 
   const resetFilters = () => setSelection(createBlankSelection())
 
+  // Helper to set age to eligible bands for a trait
+  const setAgeToEligible = (minAge: number) => {
+    const eligibleBands = getEligibleAgeBands(minAge)
+    setSelection((prev) => ({
+      ...prev,
+      ageBand: new Set(eligibleBands as AgeBandKey[]),
+    }))
+  }
+
   const content =
     route === 'about' ? (
       <AboutPage />
@@ -352,9 +378,12 @@ function App() {
         selection={selection}
         toggleSelection={toggleSelection}
         resetFilters={resetFilters}
+        setAgeToEligible={setAgeToEligible}
         summary={summary}
         estimated={estimated}
-        probability={safeProbability}
+        probability={probability}
+        universeLabel={universeLabel}
+        nationalModelSelected={nationalModelSelected}
         mainStatRef={mainStatRef}
       />
     )
@@ -375,7 +404,7 @@ function App() {
       {route === 'home' && data && (
         <StickyStatBar
           estimated={estimated}
-          probability={safeProbability}
+          probability={probability}
           visible={showStickyBar}
           onScrollToTop={scrollToMainStat}
         />
@@ -396,9 +425,12 @@ type HomePageProps = {
   selection: SelectionState
   toggleSelection: (dimension: keyof SelectionState, key: string, checked: boolean) => void
   resetFilters: () => void
+  setAgeToEligible: (minAge: number) => void
   summary: string
   estimated: number
   probability: number
+  universeLabel: string
+  nationalModelSelected: boolean
   mainStatRef: React.RefObject<HTMLDivElement | null>
 }
 
@@ -408,11 +440,20 @@ const HomePage = ({
   selection,
   toggleSelection,
   resetFilters,
+  setAgeToEligible,
   summary,
   estimated,
   probability,
+  universeLabel,
+  nationalModelSelected,
   mainStatRef,
-}: HomePageProps) => (
+}: HomePageProps) => {
+  // Check if a trait should be disabled based on current age selection
+  const isTraitDisabled = (trait: TraitManifestEntry): boolean => {
+    return hasIneligibleAgeBands(selection.ageBand, trait.minAge)
+  }
+
+  return (
   <div className="space-y-12">
     {/* Hero Section */}
     <div className="space-y-4 text-center">
@@ -450,6 +491,8 @@ const HomePage = ({
           estimated={estimated}
           probability={probability}
           summary={summary}
+          universeLabel={universeLabel}
+          nationalModelSelected={nationalModelSelected}
           onReset={resetFilters}
         />
       ) : (
@@ -524,7 +567,7 @@ const HomePage = ({
 
         <FilterCard
           title="Age Bands"
-          description="Adult age bands (18+) aggregated from ACS B01001 for modeled cells."
+          description="All ages from ACS B01001. Under 18 available but some modeled traits require 18+."
           icon={
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -532,7 +575,7 @@ const HomePage = ({
           }
         >
           <fieldset className="space-y-2" aria-label="Age bands">
-            <legend className="mb-2 text-xs font-semibold uppercase tracking-wider text-accent-400">Age (18+)</legend>
+            <legend className="mb-2 text-xs font-semibold uppercase tracking-wider text-accent-400">Age (All)</legend>
             {ageOptions.map((option) => (
               <FilterCheckbox
                 key={option.key}
@@ -547,42 +590,98 @@ const HomePage = ({
         </FilterCard>
 
         <FilterCard
-          title="Modeled (Inferred)"
-          description="Post-stratified survey traits from BRFSS + ATUS. Applied to ACS cells at runtime."
+          title="Health (Modeled)"
+          description="Health-related traits inferred from BRFSS surveys and applied to Census population counts."
           icon={
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h6m4 0a10 10 0 11-20 0 10 10 0 0120 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
           }
         >
           {data?.modeled ? (
-            <fieldset className="space-y-2" aria-label="Modeled traits">
-              <legend className="mb-2 text-xs font-semibold uppercase tracking-wider text-electric-400">
-                Modeled (Inferred)
+            <fieldset className="space-y-2" aria-label="Health traits">
+              <legend className="mb-2 text-xs font-semibold uppercase tracking-wider text-rose-400">
+                Health Indicators
               </legend>
-              {data.modeled.manifest.traits.length ? (
-                data.modeled.manifest.traits.map((trait) => (
-                  <FilterCheckbox
-                    key={trait.key}
-                    id={`modeled-${trait.key}`}
-                    label={trait.label}
-                    badge="Modeled"
-                    description={`${trait.source} · ${trait.universe ?? '18+'}`}
-                    checked={selection.modeledTraits.has(trait.key)}
-                    onChange={(checked) => toggleSelection('modeledTraits', trait.key, checked)}
-                  />
-                ))
+              {data.modeled.manifest.traits.filter(t => t.group === 'Health').length ? (
+                data.modeled.manifest.traits.filter(t => t.group === 'Health').map((trait) => {
+                  const disabled = isTraitDisabled(trait)
+                  const isNationalOnly = trait.regionSupport === 'national_only'
+                  return (
+                    <FilterCheckbox
+                      key={trait.key}
+                      id={`modeled-${trait.key}`}
+                      label={trait.label}
+                      badge="Modeled"
+                      secondaryBadge={isNationalOnly ? 'National' : undefined}
+                      description={`${trait.source} · ${trait.universeLabel}`}
+                      checked={selection.modeledTraits.has(trait.key)}
+                      disabled={disabled}
+                      disabledReason={disabled ? `Available for ${trait.universeLabel} only. Adjust age filters to enable.` : undefined}
+                      onChange={(checked) => toggleSelection('modeledTraits', trait.key, checked)}
+                      onEnableClick={disabled ? () => setAgeToEligible(trait.minAge) : undefined}
+                    />
+                  )
+                })
               ) : (
                 <p className="text-sm text-slate-500">
-                  No modeled traits available. Run npm run build:modeled-data to generate them.
+                  No health traits available. Run npm run build:modeled-data to generate them.
                 </p>
               )}
             </fieldset>
           ) : (
-            <div className="text-sm text-slate-500">Modeled traits will load after data is ready.</div>
+            <div className="text-sm text-slate-500">Health traits will load after data is ready.</div>
           )}
           <p className="pt-2 text-xs text-slate-500">
-            Estimated with weighted models and ACS post-stratification; not direct Census counts.
+            Health traits are inferred from BRFSS 2024 (Adults 18+).
+          </p>
+        </FilterCard>
+
+        <FilterCard
+          title="Hobbies (Modeled)"
+          description="Time-use proxies inferred from ATUS surveys. These are daily activity indicators."
+          icon={
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          }
+        >
+          {data?.modeled ? (
+            <fieldset className="space-y-2" aria-label="Hobbies traits">
+              <legend className="mb-2 text-xs font-semibold uppercase tracking-wider text-amber-400">
+                Activity Proxies
+              </legend>
+              {data.modeled.manifest.traits.filter(t => t.group === 'Hobbies').length ? (
+                data.modeled.manifest.traits.filter(t => t.group === 'Hobbies').map((trait) => {
+                  const disabled = isTraitDisabled(trait)
+                  const isNationalOnly = trait.regionSupport === 'national_only'
+                  return (
+                    <FilterCheckbox
+                      key={trait.key}
+                      id={`modeled-${trait.key}`}
+                      label={trait.label}
+                      badge="Modeled"
+                      secondaryBadge={isNationalOnly ? 'National' : undefined}
+                      description={trait.description || `${trait.source} · ${trait.universeLabel}`}
+                      checked={selection.modeledTraits.has(trait.key)}
+                      disabled={disabled}
+                      disabledReason={disabled ? `Available for ${trait.universeLabel} only. Adjust age filters to enable.` : undefined}
+                      onChange={(checked) => toggleSelection('modeledTraits', trait.key, checked)}
+                      onEnableClick={disabled ? () => setAgeToEligible(trait.minAge) : undefined}
+                    />
+                  )
+                })
+              ) : (
+                <p className="text-sm text-slate-500">
+                  No hobbies traits available. Run npm run build:modeled-data to generate them.
+                </p>
+              )}
+            </fieldset>
+          ) : (
+            <div className="text-sm text-slate-500">Hobbies traits will load after data is ready.</div>
+          )}
+          <p className="pt-2 text-xs text-slate-500">
+            Hobbies are national-only (ATUS 2024). Regional results apply national-by-demographic rates.
           </p>
         </FilterCard>
 
@@ -753,7 +852,7 @@ const HomePage = ({
       </div>
     </section>
   </div>
-)
+)}
 
 const AboutPage = () => (
   <div className="space-y-8">
@@ -812,77 +911,154 @@ type DataPageProps = {
   loading: boolean
 }
 
-const DataPage = ({ data, loading }: DataPageProps) => (
-  <div className="space-y-8">
-    <div className="space-y-4 text-center">
-      <div className="inline-flex items-center gap-2 rounded-full border border-electric-500/30 bg-electric-500/10 px-4 py-1.5 text-sm font-medium text-electric-400">
-        Data Sources
-      </div>
-      <h1 className="font-display text-4xl font-bold tracking-tight text-white sm:text-5xl">
-        Data & <span className="text-gradient-electric">Methodology</span>
-      </h1>
-      <p className="mx-auto max-w-2xl text-lg text-slate-400">
-        Powered by American Community Survey 1-year tables plus modeled probabilities from BRFSS and
-        ATUS microdata. Everything is aggregated—no identifiable records.
-      </p>
-    </div>
+const DataPage = ({ data, loading }: DataPageProps) => {
+  const nationalOnlyTraits = data?.modeled.manifest.traits.filter((t) => t.regionSupport === 'national_only') ?? []
 
-    {data ? (
-      <>
-        <AboutPanel
-          acsYear={data.modeled.acsCells.meta.year}
-          generatedAt={data.modeled.acsCells.meta.generatedAt}
-          totalPopulation={data.modeled.acsCells.total_pop}
-          traits={data.modeled.manifest.traits}
-        />
-        <section className="glass gradient-border rounded-3xl p-6 text-sm text-slate-300 sm:p-8">
-          <div className="mb-4 flex items-center gap-2">
-            <span className="rounded-full border border-electric-500/40 bg-electric-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-electric-300">
-              Modeled (Inferred)
-            </span>
-            <p className="text-slate-400">Offline survey models applied to ACS cells.</p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {data.modeled.manifest.traits.map((trait) => (
-              <div key={trait.key} className="rounded-xl border border-dark-400/50 bg-dark-700/40 p-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-white">{trait.label}</p>
-                    <p className="text-xs text-slate-500">{trait.source}</p>
-                  </div>
-                  <span className="rounded-full border border-accent-500/30 bg-accent-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-accent-300">
-                    Modeled
-                  </span>
-                </div>
-                {trait.definition_notes ? (
-                  <p className="mt-2 text-xs text-slate-400">{trait.definition_notes}</p>
-                ) : null}
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 rounded-lg border border-dark-400 bg-dark-700/40 p-3 text-xs text-slate-400">
-            Limitations: modeled traits assume conditional independence; survey nonresponse and sampling error may
-            introduce bias. Re-run <code className="rounded bg-dark-500 px-1 py-0.5 text-[11px]">npm run build:modeled-data</code> after updating microdata.
-          </div>
-        </section>
-      </>
-    ) : (
-      <div className="glass gradient-border rounded-3xl p-6 text-sm text-slate-400">
-        {loading ? (
-          <div className="flex items-center gap-3">
-            <svg className="h-5 w-5 animate-spin text-accent-500" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-            </svg>
-            Loading data details…
-          </div>
-        ) : (
-          'Data is not available right now.'
-        )}
+  return (
+    <div className="space-y-8">
+      <div className="space-y-4 text-center">
+        <div className="inline-flex items-center gap-2 rounded-full border border-electric-500/30 bg-electric-500/10 px-4 py-1.5 text-sm font-medium text-electric-400">
+          Data Sources
+        </div>
+        <h1 className="font-display text-4xl font-bold tracking-tight text-white sm:text-5xl">
+          Data & <span className="text-gradient-electric">Methodology</span>
+        </h1>
+        <p className="mx-auto max-w-2xl text-lg text-slate-400">
+          Powered by American Community Survey 1-year tables plus modeled probabilities from BRFSS and
+          ATUS microdata. Everything is aggregated—no identifiable records.
+        </p>
       </div>
-    )}
-  </div>
-)
+
+      {data ? (
+        <>
+          {/* ACS Backbone Info */}
+          <section className="glass gradient-border rounded-3xl p-6 text-sm text-slate-300 sm:p-8">
+            <h3 className="mb-4 font-display text-lg font-semibold text-white">Census Backbone (ACS)</h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-xl border border-dark-400/50 bg-dark-700/40 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-accent-400">Table</p>
+                <p className="mt-1 font-mono text-white">B01001</p>
+                <p className="mt-1 text-xs text-slate-500">Sex by Age (all ages)</p>
+              </div>
+              <div className="rounded-xl border border-dark-400/50 bg-dark-700/40 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-accent-400">Year</p>
+                <p className="mt-1 font-mono text-white">{data.modeled.acsCells.meta.year}</p>
+                <p className="mt-1 text-xs text-slate-500">1-year estimates</p>
+              </div>
+              <div className="rounded-xl border border-dark-400/50 bg-dark-700/40 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-accent-400">Universe</p>
+                <p className="mt-1 font-mono text-white">{data.modeled.acsCells.meta.universe ?? 'all_ages'}</p>
+                <p className="mt-1 text-xs text-slate-500">Includes ages 0–17 and 18+</p>
+              </div>
+              <div className="rounded-xl border border-dark-400/50 bg-dark-700/40 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-accent-400">Total Population</p>
+                <p className="mt-1 font-mono text-white">{formatNumber(data.modeled.acsCells.total_pop)}</p>
+                <p className="mt-1 text-xs text-slate-500">{data.modeled.acsCells.cells.length} region×sex×age cells</p>
+              </div>
+            </div>
+          </section>
+
+          <AboutPanel
+            acsYear={data.modeled.acsCells.meta.year}
+            generatedAt={data.modeled.acsCells.meta.generatedAt}
+            totalPopulation={data.modeled.acsCells.total_pop}
+            traits={data.modeled.manifest.traits}
+          />
+
+          {/* Modeled Traits Section */}
+          <section className="glass gradient-border rounded-3xl p-6 text-sm text-slate-300 sm:p-8">
+            <div className="mb-4 flex items-center gap-2">
+              <span className="rounded-full border border-electric-500/40 bg-electric-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-electric-300">
+                Modeled (Inferred)
+              </span>
+              <p className="text-slate-400">Offline survey models applied to ACS cells.</p>
+            </div>
+            
+            {/* Modeling Method */}
+            <div className="mb-4 rounded-lg border border-accent-500/20 bg-accent-500/5 p-4">
+              <h4 className="mb-2 text-sm font-semibold text-accent-400">Modeling Method</h4>
+              <p className="text-xs text-slate-400">
+                Traits are modeled using <strong>weighted logistic regression</strong> on survey microdata, 
+                then <strong>post-stratified</strong> to ACS population cells. This produces probability 
+                estimates for each demographic cell (region × sex × age band).
+              </p>
+            </div>
+
+            {/* Sources */}
+            <div className="mb-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border border-dark-400/50 bg-dark-700/40 p-3">
+                <p className="text-sm font-semibold text-white">BRFSS</p>
+                <p className="text-xs text-slate-500">Adults 18+ • Region-specific modeling</p>
+              </div>
+              <div className="rounded-lg border border-dark-400/50 bg-dark-700/40 p-3">
+                <p className="text-sm font-semibold text-white">ATUS</p>
+                <p className="text-xs text-slate-500">Ages 15+ (applied to 18+ due to age bands) • National model</p>
+              </div>
+            </div>
+
+            {/* Trait Cards */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              {data.modeled.manifest.traits.map((trait) => (
+                <div key={trait.key} className="rounded-xl border border-dark-400/50 bg-dark-700/40 p-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-white">{trait.label}</p>
+                      <p className="text-xs text-slate-500">{trait.source} · {trait.universeLabel}</p>
+                    </div>
+                    <div className="flex gap-1">
+                      <span className="rounded-full border border-accent-500/30 bg-accent-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-accent-300">
+                        Modeled
+                      </span>
+                      {trait.regionSupport === 'national_only' && (
+                        <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-300">
+                          National
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {trait.definition_notes ? (
+                    <p className="mt-2 text-xs text-slate-400">{trait.definition_notes}</p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+
+            {/* National-only explanation */}
+            {nationalOnlyTraits.length > 0 && (
+              <div className="mt-4 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-300/90">
+                <strong>National-only traits:</strong> When a trait is modeled nationally, region filtering 
+                applies the national-by-demographic rates to the region's population cells. This means 
+                regional estimates use the same trait probabilities adjusted for that region's demographic 
+                composition.
+              </div>
+            )}
+
+            <div className="mt-4 rounded-lg border border-dark-400 bg-dark-700/40 p-3 text-xs text-slate-400">
+              <strong>Limitations:</strong> Modeled traits assume conditional independence; survey nonresponse 
+              and sampling error may introduce bias. Re-run{' '}
+              <code className="rounded bg-dark-500 px-1 py-0.5 text-[11px]">npm run build:modeled-data</code>{' '}
+              after updating microdata.
+            </div>
+          </section>
+        </>
+      ) : (
+        <div className="glass gradient-border rounded-3xl p-6 text-sm text-slate-400">
+          {loading ? (
+            <div className="flex items-center gap-3">
+              <svg className="h-5 w-5 animate-spin text-accent-500" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              Loading data details…
+            </div>
+          ) : (
+            'Data is not available right now.'
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 type SiteHeaderProps = {
   currentRoute: Route

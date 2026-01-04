@@ -7,10 +7,20 @@ type Props = {
   estimated: number
   probability: number
   summary: string
+  universeLabel: string
+  nationalModelSelected: boolean
   onReset: () => void
 }
 
-export const MainStat = ({ estimated, probability, summary, onReset, total }: Props) => {
+export const MainStat = ({
+  estimated,
+  probability,
+  summary,
+  universeLabel,
+  nationalModelSelected,
+  onReset,
+  total,
+}: Props) => {
   const animatedValue = useAnimatedNumber(estimated)
   const isTiny = estimated > 0 && estimated < 1000
   const primaryText = isTiny ? 'Fewer than 1,000' : formatNumber(animatedValue)
@@ -42,8 +52,18 @@ export const MainStat = ({ estimated, probability, summary, onReset, total }: Pr
             </span>
             <span className="text-xl font-medium text-accent-400/70">%</span>
           </div>
-          <span className="text-sm text-slate-500">of U.S. adult population (ACS cells)</span>
+          <span className="text-sm text-slate-500">of {universeLabel}</span>
         </div>
+
+        {/* National model note */}
+        {nationalModelSelected && (
+          <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-300">
+            <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Note: Some modeled traits are national-only; regional results reflect national-by-demographic trends.</span>
+          </div>
+        )}
 
         {/* Percent Grid */}
         <div className="w-full max-w-2xl">

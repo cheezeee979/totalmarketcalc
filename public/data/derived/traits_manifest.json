@@ -3,30 +3,113 @@
     {
       "key": "smokes",
       "label": "Smokes (current)",
+      "group": "Health",
       "source": "BRFSS 2024",
-      "type": "modeled",
-      "universe": "adults_18plus",
-      "definition_notes": "Current cigarette smoker using CDC recode (_RFSMOK3 if available). Fallback derives from SMOKE100 (ever smoked 100 cigarettes) and SMOKDAY2 (current frequency).",
+      "minAge": 18,
+      "universeLabel": "Adults 18+",
+      "regionSupport": "modeled",
+      "description": "Currently smokes cigarettes (every day or some days)",
       "file": "traits/smokes.json"
     },
     {
       "key": "physically_active",
-      "label": "Physically active (any leisure-time activity)",
+      "label": "Physically active",
+      "group": "Health",
       "source": "BRFSS 2024",
-      "type": "modeled",
-      "universe": "adults_18plus",
-      "definition_notes": "Adults reporting any leisure-time physical activity. Uses _TOTINDA recode when present; otherwise derives from activity questions.",
+      "minAge": 18,
+      "universeLabel": "Adults 18+",
+      "regionSupport": "modeled",
+      "description": "Any leisure-time physical activity in past 30 days",
       "file": "traits/physically_active.json"
     },
     {
+      "key": "any_alcohol_use",
+      "label": "Any alcohol use",
+      "group": "Health",
+      "source": "BRFSS 2024",
+      "minAge": 18,
+      "universeLabel": "Adults 18+",
+      "regionSupport": "modeled",
+      "description": "Consumed any alcohol in the past 30 days",
+      "file": "traits/any_alcohol_use.json"
+    },
+    {
+      "key": "obese",
+      "label": "Obese (BMI \u2265 30)",
+      "group": "Health",
+      "source": "BRFSS 2024",
+      "minAge": 18,
+      "universeLabel": "Adults 18+",
+      "regionSupport": "modeled",
+      "description": "Body Mass Index of 30 or higher (obese)",
+      "file": "traits/obese.json"
+    },
+    {
+      "key": "any_chronic_condition",
+      "label": "Any chronic condition",
+      "group": "Health",
+      "source": "BRFSS 2024",
+      "minAge": 18,
+      "universeLabel": "Adults 18+",
+      "regionSupport": "modeled",
+      "description": "Has at least one chronic health condition",
+      "file": "traits/any_chronic_condition.json"
+    },
+    {
       "key": "high_childcare_time",
-      "label": "High childcare time (\u2265 60 min/day)",
-      "source": "ATUS",
-      "type": "modeled",
-      "universe": "adults_18plus",
-      "definition_notes": "Respondents with at least 60 minutes per day caring for/helping household children. Derived from activity summary columns (t0301* preferred, falling back to t03* if needed).",
+      "label": "High childcare time (\u2265 60 min)",
+      "group": "Hobbies",
+      "source": "ATUS 2024",
+      "minAge": 18,
+      "universeLabel": "Adults 18+ (ATUS is 15+; limited by age bands)",
+      "regionSupport": "national_only",
+      "description": "Proxy: spent 60+ min on childcare today",
       "file": "traits/high_childcare_time.json"
+    },
+    {
+      "key": "has_pet_proxy",
+      "label": "Animal/pet care time",
+      "group": "Hobbies",
+      "source": "ATUS 2024",
+      "minAge": 18,
+      "universeLabel": "Adults 18+",
+      "regionSupport": "national_only",
+      "description": "Proxy: spent time on animal/pet care today",
+      "file": "traits/has_pet_proxy.json"
+    },
+    {
+      "key": "plays_sports",
+      "label": "Sports/exercise (30+ min)",
+      "group": "Hobbies",
+      "source": "ATUS 2024",
+      "minAge": 18,
+      "universeLabel": "Adults 18+",
+      "regionSupport": "national_only",
+      "description": "Proxy: 30+ min sports/exercise today",
+      "file": "traits/plays_sports.json"
+    },
+    {
+      "key": "spiritual_activities",
+      "label": "Religious/spiritual activities",
+      "group": "Hobbies",
+      "source": "ATUS 2024",
+      "minAge": 18,
+      "universeLabel": "Adults 18+",
+      "regionSupport": "national_only",
+      "description": "Proxy: did religious/spiritual activities today",
+      "file": "traits/spiritual_activities.json"
+    },
+    {
+      "key": "volunteer_work",
+      "label": "Volunteer work",
+      "group": "Hobbies",
+      "source": "ATUS 2024",
+      "minAge": 18,
+      "universeLabel": "Adults 18+",
+      "regionSupport": "national_only",
+      "description": "Proxy: did volunteer work today",
+      "file": "traits/volunteer_work.json"
     }
   ],
-  "generatedAt": "2025-12-30T06:30:23.939Z"
+  "generatedAt": "2026-01-04T01:55:04.722Z"
 }

@@ -2,19 +2,118 @@
   "traits": [
     {
       "key": "high_childcare_time",
-      "label": "High childcare time (≥ 60 min/day)",
-      "source": "ATUS",
+      "label": "High childcare time (≥ 60 min)",
+      "group": "Hobbies",
+      "source": "ATUS 2024",
       "universe": "adults_18plus",
       "type": "modeled",
-      "definition_notes": "Respondents with at least 60 minutes per day caring for/helping household children. Derived from activity summary columns (t0301* preferred, falling back to t03* if needed).",
+      "minAge": 18,
+      "universeLabel": "Adults 18+ (ATUS is 15+; limited by age bands)",
+      "regionSupport": "national_only",
+      "definition_notes": "Respondents with at least 60 minutes per day caring for/helping household children.",
+      "description": "Proxy: spent 60+ min on childcare today",
       "label_rule": {
-        "kind": "atus_childcare_minutes",
+        "kind": "time_threshold",
+        "column_patterns": ["^t0301", "^t03"],
         "threshold_minutes": 60
       },
+      "prevalence_bounds": [0.01, 0.50],
       "weight_vars": ["TUFINLWGT"],
       "sex_vars": ["TESEX"],
       "age_vars": ["TEAGE"],
-      "region_vars": ["TRERNWA", "GEREG"]
+      "region_vars": ["GEREG"]
+    },
+    {
+      "key": "has_pet_proxy",
+      "label": "Animal/pet care time",
+      "group": "Hobbies",
+      "source": "ATUS 2024",
+      "universe": "adults_18plus",
+      "type": "modeled",
+      "minAge": 18,
+      "universeLabel": "Adults 18+",
+      "regionSupport": "national_only",
+      "definition_notes": "Spent any time on animal/pet care activities today (caring for & helping animals, playing with animals, etc.).",
+      "description": "Proxy: spent time on animal/pet care today",
+      "label_rule": {
+        "kind": "time_threshold",
+        "column_patterns": ["^t06"],
+        "threshold_minutes": 1
+      },
+      "prevalence_bounds": [0.01, 0.15],
+      "weight_vars": ["TUFINLWGT"],
+      "sex_vars": ["TESEX"],
+      "age_vars": ["TEAGE"],
+      "region_vars": ["GEREG"]
+    },
+    {
+      "key": "plays_sports",
+      "label": "Sports/exercise (30+ min)",
+      "group": "Hobbies",
+      "source": "ATUS 2024",
+      "universe": "adults_18plus",
+      "type": "modeled",
+      "minAge": 18,
+      "universeLabel": "Adults 18+",
+      "regionSupport": "national_only",
+      "definition_notes": "Spent 30+ minutes on sports, exercise, or recreation activities today.",
+      "description": "Proxy: 30+ min sports/exercise today",
+      "label_rule": {
+        "kind": "time_threshold",
+        "column_patterns": ["^t13"],
+        "threshold_minutes": 30
+      },
+      "prevalence_bounds": [0.05, 0.50],
+      "weight_vars": ["TUFINLWGT"],
+      "sex_vars": ["TESEX"],
+      "age_vars": ["TEAGE"],
+      "region_vars": ["GEREG"]
+    },
+    {
+      "key": "spiritual_activities",
+      "label": "Religious/spiritual activities",
+      "group": "Hobbies",
+      "source": "ATUS 2024",
+      "universe": "adults_18plus",
+      "type": "modeled",
+      "minAge": 18,
+      "universeLabel": "Adults 18+",
+      "regionSupport": "national_only",
+      "definition_notes": "Participated in any religious or spiritual activities today.",
+      "description": "Proxy: did religious/spiritual activities today",
+      "label_rule": {
+        "kind": "time_threshold",
+        "column_patterns": ["^t14"],
+        "threshold_minutes": 1
+      },
+      "prevalence_bounds": [0.01, 0.30],
+      "weight_vars": ["TUFINLWGT"],
+      "sex_vars": ["TESEX"],
+      "age_vars": ["TEAGE"],
+      "region_vars": ["GEREG"]
+    },
+    {
+      "key": "volunteer_work",
+      "label": "Volunteer work",
+      "group": "Hobbies",
+      "source": "ATUS 2024",
+      "universe": "adults_18plus",
+      "type": "modeled",
+      "minAge": 18,
+      "universeLabel": "Adults 18+",
+      "regionSupport": "national_only",
+      "definition_notes": "Participated in any volunteer or civic activities today.",
+      "description": "Proxy: did volunteer work today",
+      "label_rule": {
+        "kind": "time_threshold",
+        "column_patterns": ["^t15"],
+        "threshold_minutes": 1
+      },
+      "prevalence_bounds": [0.01, 0.20],
+      "weight_vars": ["TUFINLWGT"],
+      "sex_vars": ["TESEX"],
+      "age_vars": ["TEAGE"],
+      "region_vars": ["GEREG"]
     }
   ]
 }

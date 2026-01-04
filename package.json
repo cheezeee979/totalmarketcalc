@@ -10,8 +10,11 @@
     "preview": "vite preview",
     "fetch-data": "tsx scripts/fetchCensusData.ts",
     "build:acs-cells": "node --experimental-strip-types scripts/build/build_acs_cells.ts",
-    "build:traits": "python3 scripts/modeling/build_brfss_traits.py && python3 scripts/modeling/build_atus_traits.py && python3 scripts/modeling/validate_traits.py",
-    "build:modeled-data": "npm run build:acs-cells && npm run build:traits",
+    "build:brfss": "python3 scripts/modeling/build_brfss_traits.py",
+    "build:atus": "python3 scripts/modeling/build_atus_traits.py",
+    "build:traits": "npm run build:brfss && npm run build:atus && python3 scripts/modeling/validate_traits.py",
+    "sync:derived": "cp -r data/derived/* public/data/derived/",
+    "build:modeled-data": "npm run build:acs-cells && npm run build:traits && npm run sync:derived",
     "test": "vitest"
   },
   "dependencies": {
