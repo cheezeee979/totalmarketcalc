@@ -69,11 +69,12 @@ const validateTraitProbabilities = (
 const logDataHealth = (
   acsCells: AcsCells,
   manifest: TraitManifest,
-  traitProbabilities: Record<string, Record<string, number>>
+  _traitProbabilities: Record<string, Record<string, number>>
 ): void => {
   const nationalOnlyTraits = manifest.traits.filter((t) => t.regionSupport === 'national_only')
-  const under18Cells = acsCells.cells.filter((c) => c.age_band === '0_17')
-  const adultCells = acsCells.cells.filter((c) => c.age_band !== '0_17')
+  const childAgeBands = ['0_14', '15_17', '0_17'] // Support both old and new age bands
+  const under18Cells = acsCells.cells.filter((c) => childAgeBands.includes(c.age_band))
+  const adultCells = acsCells.cells.filter((c) => !childAgeBands.includes(c.age_band))
   
   console.log('[Data Health] Summary:')
   console.log(`  - ACS cells: ${acsCells.cells.length} total`)
@@ -120,8 +121,9 @@ export const loadAppData = async (): Promise<AppData> => {
     )
     
     // Validate trait probabilities - only validate against adult cells for adult traits
+    const childAgeBands = ['0_14', '15_17', '0_17'] // Support both old and new age bands
     const eligibleCellIds = trait.minAge >= 18
-      ? new Set(acsCells.cells.filter((c) => c.age_band !== '0_17').map((c) => c.cell_id))
+      ? new Set(acsCells.cells.filter((c) => !childAgeBands.includes(c.age_band)).map((c) => c.cell_id))
       : cellIds
     validateTraitProbabilities(trait.key, payload.prob_by_cell, eligibleCellIds)
     

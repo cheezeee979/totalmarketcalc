@@ -11,7 +11,7 @@
     "minAge": 18,
     "universeLabel": "Adults 18+",
     "regionSupport": "modeled",
-    "generatedAt": "2026-01-04T01:55:46.206012+00:00",
+    "generatedAt": "2026-01-04T03:07:43.579815+00:00",
     "definition": "Has at least one of: diabetes, asthma, COPD, heart disease, stroke, kidney disease, cancer, or arthritis.",
     "implied_prevalence": 0.4482
   },
@@ -64,13 +64,21 @@
     "we_female_45_54": 0.450173,
     "we_female_55_64": 0.598981,
     "we_female_65_plus": 0.706252,
-    "ne_male_0_17": 0.0,
-    "ne_female_0_17": 0.0,
-    "mw_male_0_17": 0.0,
-    "mw_female_0_17": 0.0,
-    "so_male_0_17": 0.0,
-    "so_female_0_17": 0.0,
-    "we_male_0_17": 0.0,
-    "we_female_0_17": 0.0
+    "ne_male_0_14": 0.0,
+    "ne_male_15_17": 0.0,
+    "ne_female_0_14": 0.0,
+    "ne_female_15_17": 0.0,
+    "mw_male_0_14": 0.0,
+    "mw_male_15_17": 0.0,
+    "mw_female_0_14": 0.0,
+    "mw_female_15_17": 0.0,
+    "so_male_0_14": 0.0,
+    "so_male_15_17": 0.0,
+    "so_female_0_14": 0.0,
+    "so_female_15_17": 0.0,
+    "we_male_0_14": 0.0,
+    "we_male_15_17": 0.0,
+    "we_female_0_14": 0.0,
+    "we_female_15_17": 0.0
   }
 }

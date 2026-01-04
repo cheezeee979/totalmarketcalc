@@ -161,6 +161,11 @@ def predict_for_cells(result, design_columns, cells: pd.DataFrame):
     return np.clip(preds, 0, 1)
 
 
+def is_child_age_band(age_band: str) -> bool:
+    """Check if an age band is for children (under 18)."""
+    return age_band in ("0_17", "0_14", "15_17")
+
+
 def validate_probabilities(
     prob_by_cell: Dict[str, float], 
     cells_df: pd.DataFrame, 
@@ -176,8 +181,8 @@ def validate_probabilities(
         if prob < 0 or prob > 1:
             raise ValueError(f"Trait {trait_key}: probability for {cell_id} out of bounds [0,1]: {prob}")
     
-    # Only use adult cells for prevalence calculation
-    adult_cells = cells_df[cells_df["age_band"] != "0_17"].copy()
+    # Only use adult cells for prevalence calculation (exclude child age bands)
+    adult_cells = cells_df[~cells_df["age_band"].apply(is_child_age_band)].copy()
     
     if adult_cells.empty:
         raise ValueError(f"Trait {trait_key}: No adult cells found for prevalence calculation")
@@ -382,8 +387,8 @@ def main():
         )
         print(result.summary())
 
-        # Prepare cells for prediction
-        adult_cells_df = cells_df[cells_df["age_band"] != "0_17"].copy()
+        # Prepare cells for prediction (adults only)
+        adult_cells_df = cells_df[~cells_df["age_band"].apply(is_child_age_band)].copy()
         if not include_region:
             adult_cells_df["region_key"] = "nationwide"
 
@@ -392,8 +397,8 @@ def main():
         # Build prob_by_cell
         prob_by_cell = {cell_id: float(round(prob, 6)) for cell_id, prob in zip(adult_cells_df["cell_id"], preds)}
         
-        # Add 0_17 cells with probability 0 (ineligible)
-        child_cells = cells_df[cells_df["age_band"] == "0_17"]
+        # Add child cells (0_14, 15_17, or legacy 0_17) with probability 0 (ineligible)
+        child_cells = cells_df[cells_df["age_band"].apply(is_child_age_band)]
         for _, row in child_cells.iterrows():
             prob_by_cell[row["cell_id"]] = 0.0
         

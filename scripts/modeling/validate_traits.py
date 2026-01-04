@@ -33,6 +33,11 @@ def load_json(path: Path) -> dict:
         return json.load(f)
 
 
+def is_child_age_band(age_band: str) -> bool:
+    """Check if an age band is for children (under 18)."""
+    return age_band in ("0_17", "0_14", "15_17")
+
+
 def validate_prevalence(
     probs: Dict[str, float],
     cells: List[dict],
@@ -45,8 +50,8 @@ def validate_prevalence(
     """
     min_prev, max_prev = bounds
     
-    # Only use adult cells (age_band != 0_17)
-    adult_cells = [c for c in cells if c["age_band"] != "0_17"]
+    # Only use adult cells (exclude child age bands)
+    adult_cells = [c for c in cells if not is_child_age_band(c["age_band"])]
     
     if not adult_cells:
         raise ValueError(f"Trait {trait_key}: No adult cells found")

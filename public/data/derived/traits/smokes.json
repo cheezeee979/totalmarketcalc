@@ -11,7 +11,7 @@
     "minAge": 18,
     "universeLabel": "Adults 18+",
     "regionSupport": "modeled",
-    "generatedAt": "2026-01-04T01:55:35.359098+00:00",
+    "generatedAt": "2026-01-04T03:07:32.215668+00:00",
     "definition": "Current cigarette smoker using _SMOKER3 (1=every day, 2=some days). Former smokers (3) and never smokers (4) are coded as non-smokers. Missing/refused (9) are excluded.",
     "implied_prevalence": 0.11
   },
@@ -64,13 +64,21 @@
     "we_female_45_54": 0.101069,
     "we_female_55_64": 0.100329,
     "we_female_65_plus": 0.057553,
-    "ne_male_0_17": 0.0,
-    "ne_female_0_17": 0.0,
-    "mw_male_0_17": 0.0,
-    "mw_female_0_17": 0.0,
-    "so_male_0_17": 0.0,
-    "so_female_0_17": 0.0,
-    "we_male_0_17": 0.0,
-    "we_female_0_17": 0.0
+    "ne_male_0_14": 0.0,
+    "ne_male_15_17": 0.0,
+    "ne_female_0_14": 0.0,
+    "ne_female_15_17": 0.0,
+    "mw_male_0_14": 0.0,
+    "mw_male_15_17": 0.0,
+    "mw_female_0_14": 0.0,
+    "mw_female_15_17": 0.0,
+    "so_male_0_14": 0.0,
+    "so_male_15_17": 0.0,
+    "so_female_0_14": 0.0,
+    "so_female_15_17": 0.0,
+    "we_male_0_14": 0.0,
+    "we_male_15_17": 0.0,
+    "we_female_0_14": 0.0,
+    "we_female_15_17": 0.0
   }
 }

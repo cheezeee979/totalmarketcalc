@@ -12,6 +12,7 @@ import type {
   HouseholdTypeKey,
   AgeBandKey,
   ModeledTraitKey,
+  TransportKey,
 } from '../types'
 
 export type SelectionState = {
@@ -25,6 +26,7 @@ export type SelectionState = {
   income: Set<IncomeKey>
   education: Set<EducationKey>
   householdType: Set<HouseholdTypeKey>
+  transport: Set<TransportKey>
 }
 
 export const computeDimensionProbability = (
@@ -138,6 +140,14 @@ export const buildFilterSummary = (
   if (selection.householdType.size) {
     parts.push(
       `Household Type: ${Array.from(selection.householdType)
+        .map((key) => labels[key] ?? key)
+        .join(', ')}`,
+    )
+  }
+
+  if (selection.transport.size) {
+    parts.push(
+      `Transport: ${Array.from(selection.transport)
         .map((key) => labels[key] ?? key)
         .join(', ')}`,
     )

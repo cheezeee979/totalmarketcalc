@@ -6,7 +6,7 @@ type ApiRow = Array<string>
 
 type RegionKey = 'northeast' | 'midwest' | 'south' | 'west'
 type SexKey = 'male' | 'female'
-type AgeBandKey = '0_17' | '18_24' | '25_34' | '35_44' | '45_54' | '55_64' | '65_plus'
+type AgeBandKey = '0_14' | '15_17' | '18_24' | '25_34' | '35_44' | '45_54' | '55_64' | '65_plus'
 
 const year = process.env.CENSUS_YEAR ?? '2024'
 const apiKey = process.env.CENSUS_API_KEY
@@ -31,9 +31,13 @@ const regionAbbrev: Record<RegionKey, string> = {
 // 5 to 9: B01001_004E (male), B01001_028E (female)
 // 10 to 14: B01001_005E (male), B01001_029E (female)
 // 15 to 17: B01001_006E (male), B01001_030E (female)
+//
+// NOTE: ACS B01001 provides 15-17, not 16-17. Employment (DP03) is for 16+.
+// We split children into 0_14 and 15_17 to better handle employment eligibility.
 const ageBands: Record<SexKey, Record<AgeBandKey, string[]>> = {
   male: {
-    '0_17': ['B01001_003E', 'B01001_004E', 'B01001_005E', 'B01001_006E'],
+    '0_14': ['B01001_003E', 'B01001_004E', 'B01001_005E'], // Under 5, 5-9, 10-14
+    '15_17': ['B01001_006E'], // 15-17 (includes 15, which is below employment universe)
     '18_24': ['B01001_007E', 'B01001_008E', 'B01001_009E', 'B01001_010E'],
     '25_34': ['B01001_011E', 'B01001_012E'],
     '35_44': ['B01001_013E', 'B01001_014E'],
@@ -42,7 +46,8 @@ const ageBands: Record<SexKey, Record<AgeBandKey, string[]>> = {
     '65_plus': ['B01001_020E', 'B01001_021E', 'B01001_022E', 'B01001_023E', 'B01001_024E', 'B01001_025E'],
   },
   female: {
-    '0_17': ['B01001_027E', 'B01001_028E', 'B01001_029E', 'B01001_030E'],
+    '0_14': ['B01001_027E', 'B01001_028E', 'B01001_029E'], // Under 5, 5-9, 10-14
+    '15_17': ['B01001_030E'], // 15-17 (includes 15, which is below employment universe)
     '18_24': ['B01001_031E', 'B01001_032E', 'B01001_033E', 'B01001_034E'],
     '25_34': ['B01001_035E', 'B01001_036E'],
     '35_44': ['B01001_037E', 'B01001_038E'],
@@ -87,8 +92,18 @@ const writePayload = (payload: unknown) => {
 const fallbackFromExisting = () => {
   const existingPath = path.resolve(process.cwd(), 'data', 'derived', 'acs_cells.json')
   if (!fs.existsSync(existingPath)) return null
-  console.warn('Using existing data/derived/acs_cells.json because ACS API is unreachable.')
+  console.warn('Checking existing data/derived/acs_cells.json...')
   const payload = JSON.parse(fs.readFileSync(existingPath, 'utf8'))
+  
+  // Validate that the existing file has the new age bands (0_14, 15_17)
+  const ageBandsInFile = new Set(payload.cells?.map((c: { age_band: string }) => c.age_band) ?? [])
+  if (!ageBandsInFile.has('0_14') || !ageBandsInFile.has('15_17')) {
+    console.error('Existing acs_cells.json has outdated age bands (missing 0_14 or 15_17).')
+    console.error('The app requires the updated age band structure. Falling back to placeholder generation.')
+    return null // Force fallback to placeholder or fail
+  }
+  
+  console.warn('Using existing data/derived/acs_cells.json because ACS API is unreachable.')
   payload.meta.generatedAt = new Date().toISOString()
   payload.meta.note = 'Reused existing ACS cells because ACS API fetch failed.'
   writePayload(payload)
@@ -101,9 +116,11 @@ const fallbackFromPopulationShares = () => {
   console.warn('Building placeholder ACS cells from public/data/populationShares.json (no API access).')
   const shares = JSON.parse(fs.readFileSync(sharesPath, 'utf8'))
   const regionMap: Record<string, string> = { northeast: 'ne', midwest: 'mw', south: 'so', west: 'we' }
-  // Approximate age distribution including under-18 (roughly 22% of population)
+  // Approximate age distribution with split child bands
+  // Under-18 is ~22%, split approximately: 0-14 ~18%, 15-17 ~4%
   const ageWeights: Record<AgeBandKey, number> = {
-    '0_17': 0.22,
+    '0_14': 0.18,
+    '15_17': 0.04,
     '18_24': 0.10,
     '25_34': 0.13,
     '35_44': 0.14,

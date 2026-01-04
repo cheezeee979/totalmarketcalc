@@ -24,6 +24,7 @@ import type {
   HouseholdTypeKey,
   AgeBandKey,
   TraitManifestEntry,
+  TransportKey,
 } from './types'
 import type { SelectionState } from './utils/calculations'
 
@@ -72,7 +73,8 @@ const labelLookup: Record<string, string> = {
   employed: 'Employed',
   unemployed: 'Unemployed',
   notInLabor: 'Not in labor force',
-  '0_17': 'Under 18',
+  '0_14': '0-14',
+  '15_17': '15-17',
   '18_24': '18-24',
   '25_34': '25-34',
   '35_44': '35-44',
@@ -99,6 +101,9 @@ const labelLookup: Record<string, string> = {
   singleParent: 'Single parent',
   livingAlone: 'Living alone',
   otherHousehold: 'Other household',
+  // Transport labels
+  hasVehicle1plus: 'Has 1+ vehicles',
+  noVehicle: 'No vehicle available',
 }
 
 const createBlankSelection = (): SelectionState => ({
@@ -112,6 +117,7 @@ const createBlankSelection = (): SelectionState => ({
   income: new Set(),
   education: new Set(),
   householdType: new Set(),
+  transport: new Set(),
 })
 
 const sexOptions: Array<{ key: SexKey; label: string; description: string }> = [
@@ -140,7 +146,8 @@ const employmentOptions: Array<{ key: EmploymentKey; label: string; description:
 ]
 
 const ageOptions: Array<{ key: AgeBandKey; label: string; description: string }> = [
-  { key: '0_17', label: 'Under 18', description: 'ACS B01001 recode · children & teens' },
+  { key: '0_14', label: '0-14', description: 'Children (Under 5, 5-9, 10-14)' },
+  { key: '15_17', label: '15-17', description: 'Teens (includes 15, below employment universe)' },
   { key: '18_24', label: '18-24', description: 'ACS B01001 recode · young adults' },
   { key: '25_34', label: '25-34', description: 'ACS B01001 recode · early career' },
   { key: '35_44', label: '35-44', description: 'ACS B01001 recode · mid career' },
@@ -148,6 +155,9 @@ const ageOptions: Array<{ key: AgeBandKey; label: string; description: string }>
   { key: '55_64', label: '55-64', description: 'ACS B01001 recode · nearing retirement' },
   { key: '65_plus', label: '65+', description: 'ACS B01001 recode · older adults' },
 ]
+
+// Age bands that constitute "Under 18" for convenience toggle
+const UNDER_18_BANDS: AgeBandKey[] = ['0_14', '15_17']
 
 const childrenOptions: Array<{ key: ChildrenKey; label: string; description: string }> = [
   {
@@ -184,6 +194,11 @@ const householdTypeOptions: Array<{ key: HouseholdTypeKey; label: string; descri
   { key: 'singleParent', label: 'Single parent', description: 'Single parent with children' },
   { key: 'livingAlone', label: 'Living alone', description: 'One-person household' },
   { key: 'otherHousehold', label: 'Other household', description: 'Roommates, multigenerational, etc.' },
+]
+
+const transportOptions: Array<{ key: TransportKey; label: string; description: string }> = [
+  { key: 'hasVehicle1plus', label: 'Has 1+ vehicles', description: 'Approximate (household-based ACS DP04)' },
+  { key: 'noVehicle', label: 'No vehicle available', description: 'Approximate (household-based ACS DP04)' },
 ]
 
 // Sticky Stats Bar Component
@@ -324,7 +339,6 @@ function App() {
     }
   }, [data, selection])
 
-  const totalBase = estimateResult.denominatorPop || (data?.modeled.acsCells.total_pop ?? 0)
   const probability = estimateResult.probability
   const estimated = estimateResult.estimated
   const universeLabel = estimateResult.universeLabel
@@ -366,6 +380,18 @@ function App() {
     }))
   }
 
+  // Helper to toggle "Under 18" convenience (both 0_14 and 15_17)
+  const toggleUnder18 = (checked: boolean) => {
+    setSelection((prev) => {
+      const next = new Set(prev.ageBand)
+      UNDER_18_BANDS.forEach((band) => {
+        if (checked) next.add(band)
+        else next.delete(band)
+      })
+      return { ...prev, ageBand: next }
+    })
+  }
+
   const content =
     route === 'about' ? (
       <AboutPage />
@@ -379,6 +405,7 @@ function App() {
         toggleSelection={toggleSelection}
         resetFilters={resetFilters}
         setAgeToEligible={setAgeToEligible}
+        toggleUnder18={toggleUnder18}
         summary={summary}
         estimated={estimated}
         probability={probability}
@@ -426,6 +453,7 @@ type HomePageProps = {
   toggleSelection: (dimension: keyof SelectionState, key: string, checked: boolean) => void
   resetFilters: () => void
   setAgeToEligible: (minAge: number) => void
+  toggleUnder18: (checked: boolean) => void
   summary: string
   estimated: number
   probability: number
@@ -441,6 +469,7 @@ const HomePage = ({
   toggleSelection,
   resetFilters,
   setAgeToEligible,
+  toggleUnder18,
   summary,
   estimated,
   probability,
@@ -567,7 +596,7 @@ const HomePage = ({
 
         <FilterCard
           title="Age Bands"
-          description="All ages from ACS B01001. Under 18 available but some modeled traits require 18+."
+          description="All ages from ACS B01001. Some modeled traits and employment require 16+/18+."
           icon={
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -576,6 +605,21 @@ const HomePage = ({
         >
           <fieldset className="space-y-2" aria-label="Age bands">
             <legend className="mb-2 text-xs font-semibold uppercase tracking-wider text-accent-400">Age (All)</legend>
+            
+            {/* Under 18 convenience toggle */}
+            <div className="mb-3 flex items-center gap-2 rounded-lg border border-accent-500/20 bg-accent-500/5 px-3 py-2">
+              <input
+                type="checkbox"
+                id="age-under18-toggle"
+                className="h-4 w-4 rounded border-dark-400 bg-dark-600 text-accent-500 focus:ring-accent-500/50"
+                checked={UNDER_18_BANDS.every(band => selection.ageBand.has(band))}
+                onChange={(e) => toggleUnder18(e.target.checked)}
+              />
+              <label htmlFor="age-under18-toggle" className="text-sm font-medium text-accent-400 cursor-pointer">
+                Under 18 (select both 0-14 + 15-17)
+              </label>
+            </div>
+            
             {ageOptions.map((option) => (
               <FilterCheckbox
                 key={option.key}
@@ -639,7 +683,7 @@ const HomePage = ({
 
         <FilterCard
           title="Hobbies (Modeled)"
-          description="Time-use proxies inferred from ATUS surveys. These are daily activity indicators."
+          description="Weekly activity estimates derived from ATUS one-day time diaries."
           icon={
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -649,12 +693,21 @@ const HomePage = ({
           {data?.modeled ? (
             <fieldset className="space-y-2" aria-label="Hobbies traits">
               <legend className="mb-2 text-xs font-semibold uppercase tracking-wider text-amber-400">
-                Activity Proxies
+                Weekly Activity Estimates
               </legend>
               {data.modeled.manifest.traits.filter(t => t.group === 'Hobbies').length ? (
                 data.modeled.manifest.traits.filter(t => t.group === 'Hobbies').map((trait) => {
                   const disabled = isTraitDisabled(trait)
                   const isNationalOnly = trait.regionSupport === 'national_only'
+                  // Weekly-specific descriptions for ATUS hobbies
+                  const weeklyDescriptions: Record<string, string> = {
+                    high_childcare_time: 'High childcare time (60+ min at least once per week, estimated)',
+                    has_pet_proxy: 'Has a pet (proxy: any pet care time at least once per week, estimated)',
+                    plays_sports: 'Plays sports/exercises (30+ min at least once per week, estimated)',
+                    spiritual_activities: 'Religious/spiritual activities (at least once per week, estimated)',
+                    volunteer_work: 'Volunteer work (at least once per week, estimated)',
+                  }
+                  const description = weeklyDescriptions[trait.key] || `${trait.source} · ${trait.universeLabel} (weekly estimated)`
                   return (
                     <FilterCheckbox
                       key={trait.key}
@@ -662,7 +715,7 @@ const HomePage = ({
                       label={trait.label}
                       badge="Modeled"
                       secondaryBadge={isNationalOnly ? 'National' : undefined}
-                      description={trait.description || `${trait.source} · ${trait.universeLabel}`}
+                      description={description}
                       checked={selection.modeledTraits.has(trait.key)}
                       disabled={disabled}
                       disabledReason={disabled ? `Available for ${trait.universeLabel} only. Adjust age filters to enable.` : undefined}
@@ -680,9 +733,14 @@ const HomePage = ({
           ) : (
             <div className="text-sm text-slate-500">Hobbies traits will load after data is ready.</div>
           )}
-          <p className="pt-2 text-xs text-slate-500">
-            Hobbies are national-only (ATUS 2024). Regional results apply national-by-demographic rates.
-          </p>
+          <div className="mt-3 space-y-2 border-t border-dark-400/50 pt-3">
+            <p className="text-xs text-slate-500">
+              Weekly values are estimated from ATUS one-day diaries using: <code className="rounded bg-dark-500 px-1 py-0.5 text-[10px] font-mono text-amber-300">1 − (1 − p)^7</code>
+            </p>
+            <p className="text-xs text-slate-500">
+              Hobbies are national-only (ATUS 2024). Regional results apply national-by-demographic rates.
+            </p>
+          </div>
         </FilterCard>
 
         <FilterCard
@@ -710,8 +768,8 @@ const HomePage = ({
         </FilterCard>
 
         <FilterCard
-          title="Employment"
-          description="DP03 employment status, scaled to the total population (16+ base)."
+          title="Employment + Transport"
+          description="DP03 employment status and DP04 vehicle availability (both household-based)."
           icon={
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -719,7 +777,7 @@ const HomePage = ({
           }
         >
           <fieldset className="space-y-2" aria-label="Employment status">
-            <legend className="mb-2 text-xs font-semibold uppercase tracking-wider text-accent-400">Status</legend>
+            <legend className="mb-2 text-xs font-semibold uppercase tracking-wider text-accent-400">Employment Status</legend>
             {employmentOptions.map((option) => (
               <FilterCheckbox
                 key={option.key}
@@ -730,6 +788,28 @@ const HomePage = ({
                 onChange={(checked) => toggleSelection('employment', option.key, checked)}
               />
             ))}
+            <p className="pt-1 text-[10px] text-amber-400/80 italic">
+              Employment is defined for ages 16+. Ages 0-14 are excluded; ages 15-17 are approximated (2/3 eligibility).
+            </p>
+          </fieldset>
+
+          <div className="my-3 h-px bg-gradient-to-r from-transparent via-dark-300 to-transparent" />
+
+          <fieldset className="space-y-2" aria-label="Vehicle availability">
+            <legend className="mb-2 text-xs font-semibold uppercase tracking-wider text-accent-400">Vehicle Availability</legend>
+            {transportOptions.map((option) => (
+              <FilterCheckbox
+                key={option.key}
+                id={`transport-${option.key}`}
+                label={option.label}
+                description={option.description}
+                checked={selection.transport.has(option.key)}
+                onChange={(checked) => toggleSelection('transport', option.key, checked)}
+              />
+            ))}
+            <p className="pt-1 text-[10px] text-slate-500 italic">
+              Vehicle data is household-based (occupied housing units). Applied as approximate share to person counts.
+            </p>
           </fieldset>
         </FilterCard>
 
@@ -985,14 +1065,18 @@ const DataPage = ({ data, loading }: DataPageProps) => {
             </div>
 
             {/* Sources */}
-            <div className="mb-4 grid gap-3 sm:grid-cols-2">
+            <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <div className="rounded-lg border border-dark-400/50 bg-dark-700/40 p-3">
                 <p className="text-sm font-semibold text-white">BRFSS</p>
                 <p className="text-xs text-slate-500">Adults 18+ • Region-specific modeling</p>
               </div>
               <div className="rounded-lg border border-dark-400/50 bg-dark-700/40 p-3">
                 <p className="text-sm font-semibold text-white">ATUS</p>
-                <p className="text-xs text-slate-500">Ages 15+ (applied to 18+ due to age bands) • National model</p>
+                <p className="text-xs text-slate-500">Ages 15+ (applied to 18+) • National model • Weekly estimates via 1−(1−p)^7</p>
+              </div>
+              <div className="rounded-lg border border-dark-400/50 bg-dark-700/40 p-3">
+                <p className="text-sm font-semibold text-white">ACS DP04</p>
+                <p className="text-xs text-slate-500">Vehicles Available • Household-based (approximate)</p>
               </div>
             </div>
 
@@ -1033,11 +1117,19 @@ const DataPage = ({ data, loading }: DataPageProps) => {
               </div>
             )}
 
-            <div className="mt-4 rounded-lg border border-dark-400 bg-dark-700/40 p-3 text-xs text-slate-400">
-              <strong>Limitations:</strong> Modeled traits assume conditional independence; survey nonresponse 
-              and sampling error may introduce bias. Re-run{' '}
-              <code className="rounded bg-dark-500 px-1 py-0.5 text-[11px]">npm run build:modeled-data</code>{' '}
-              after updating microdata.
+            <div className="mt-4 space-y-2">
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-300/90">
+                <strong>Transport (Vehicle Availability):</strong> Uses ACS DP04 Vehicles Available counts 
+                from occupied housing units. Applied as an approximate share to person counts since vehicle 
+                data is household-based, not person-based.
+              </div>
+              <div className="rounded-lg border border-dark-400 bg-dark-700/40 p-3 text-xs text-slate-400">
+                <strong>Limitations:</strong> Modeled traits assume conditional independence; survey nonresponse 
+                and sampling error may introduce bias. ATUS hobby traits are weekly estimates derived from one-day 
+                diaries. Re-run{' '}
+                <code className="rounded bg-dark-500 px-1 py-0.5 text-[11px]">npm run build:modeled-data</code>{' '}
+                after updating microdata.
+              </div>
             </div>
           </section>
         </>

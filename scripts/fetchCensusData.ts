@@ -48,8 +48,13 @@ const run = async () => {
     `${profileBase}?get=DP03_0001E,DP03_0004E,DP03_0005E,DP03_0007E&for=us:1`,
   )
   const childrenUrl = withKey(`${profileBase}?get=DP02_0001E,DP02_0006E&for=us:1`)
+  // DP04 Vehicles Available (occupied housing units)
+  // DP04_0058E = No vehicles, DP04_0059E = 1 vehicle, DP04_0060E = 2 vehicles, DP04_0061E = 3+ vehicles
+  const vehiclesUrl = withKey(
+    `${profileBase}?get=DP04_0058E,DP04_0059E,DP04_0060E,DP04_0061E&for=us:1`,
+  )
 
-  const [totalRows, ageRows, raceRows, regionRows, employmentRows, childrenRows] =
+  const [totalRows, ageRows, raceRows, regionRows, employmentRows, childrenRows, vehiclesRows] =
     await Promise.all([
       fetchCensus(totalUrl),
       fetchCensus(ageUrl),
@@ -57,6 +62,7 @@ const run = async () => {
       fetchCensus(regionUrl),
       fetchCensus(employmentUrl),
       fetchCensus(childrenUrl),
+      fetchCensus(vehiclesUrl),
     ])
 
   const totalPopulation = parseNumber(totalRows[1]?.[0])
@@ -163,6 +169,24 @@ const run = async () => {
   const hasChildrenCount = householdChildShare * totalPopulation
   const noChildrenCount = Math.max(totalPopulation - hasChildrenCount, 0)
 
+  // Process vehicles data (household-based, approximated to person counts)
+  const vehiclesRecord = toRecord(vehiclesRows)
+  const noVehicleUnits = parseNumber(vehiclesRecord.DP04_0058E)
+  const oneVehicleUnits = parseNumber(vehiclesRecord.DP04_0059E)
+  const twoVehicleUnits = parseNumber(vehiclesRecord.DP04_0060E)
+  const threePlusVehicleUnits = parseNumber(vehiclesRecord.DP04_0061E)
+  const totalVehicleUnits = noVehicleUnits + oneVehicleUnits + twoVehicleUnits + threePlusVehicleUnits
+  
+  // Compute shares of housing units (used as approximate person share)
+  const hasVehicleShare = totalVehicleUnits 
+    ? (oneVehicleUnits + twoVehicleUnits + threePlusVehicleUnits) / totalVehicleUnits 
+    : 0
+  const noVehicleShare = totalVehicleUnits ? noVehicleUnits / totalVehicleUnits : 0
+  
+  // Approximate person counts by applying share to total population
+  const hasVehicleCount = Math.round(hasVehicleShare * totalPopulation)
+  const noVehicleCount = Math.round(noVehicleShare * totalPopulation)
+
   const share = (value: number) => (totalPopulation ? value / totalPopulation : 0)
 
   const dataset = {
@@ -204,6 +228,10 @@ const run = async () => {
       children: {
         hasChildren: { count: hasChildrenCount, share: share(hasChildrenCount) },
         noChildren: { count: noChildrenCount, share: share(noChildrenCount) },
+      },
+      transport: {
+        hasVehicle1plus: { count: hasVehicleCount, share: hasVehicleShare },
+        noVehicle: { count: noVehicleCount, share: noVehicleShare },
       },
     },
   }

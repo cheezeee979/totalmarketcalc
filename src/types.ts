@@ -3,13 +3,14 @@ export type RaceKey = 'white' | 'black' | 'asian' | 'other'
 export type RegionKey = 'northeast' | 'midwest' | 'south' | 'west'
 export type EmploymentKey = 'employed' | 'unemployed' | 'notInLabor'
 export type AgeKey = 'age0to17' | 'age18to34' | 'age35to54' | 'age55to74' | 'age75plus'
-export type AgeBandKey = '0_17' | '18_24' | '25_34' | '35_44' | '45_54' | '55_64' | '65_plus'
+export type AgeBandKey = '0_14' | '15_17' | '18_24' | '25_34' | '35_44' | '45_54' | '55_64' | '65_plus'
 export type ChildrenKey = 'hasChildren' | 'noChildren'
 export type IncomeKey = 'under25k' | 'income25to50k' | 'income50to75k' | 'income75to100k' | 'income100to150k' | 'over150k'
 export type EducationKey = 'lessThanHighSchool' | 'highSchool' | 'someCollege' | 'bachelors' | 'graduate'
 export type HouseholdTypeKey = 'marriedCouple' | 'singleParent' | 'livingAlone' | 'otherHousehold'
+export type TransportKey = 'hasVehicle1plus' | 'noVehicle'
 
-export type DimensionName = 'sex' | 'race' | 'region' | 'employment' | 'age' | 'children' | 'income' | 'education' | 'householdType'
+export type DimensionName = 'sex' | 'race' | 'region' | 'employment' | 'age' | 'children' | 'income' | 'education' | 'householdType' | 'transport'
 
 export type CategoryStats = {
   count: number
@@ -33,6 +34,7 @@ export type PopulationData = {
     income: Record<IncomeKey, CategoryStats>
     education: Record<EducationKey, CategoryStats>
     householdType: Record<HouseholdTypeKey, CategoryStats>
+    transport: Record<TransportKey, CategoryStats>
   }
 }
 

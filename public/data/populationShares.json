@@ -163,6 +163,16 @@
         "count": 40413259,
         "share": 0.1188
       }
+    },
+    "transport": {
+      "hasVehicle1plus": {
+        "count": 309701001,
+        "share": 0.9106
+      },
+      "noVehicle": {
+        "count": 30409989,
+        "share": 0.0894
+      }
     }
   }
 }

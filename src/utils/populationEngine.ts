@@ -1,12 +1,14 @@
-import type { AcsCell, ModeledAssets, ModeledTraitKey, PopulationData, TraitManifestEntry } from '../types'
+import type { AcsCell, AgeBandKey, ModeledAssets, ModeledTraitKey, PopulationData } from '../types'
 import type { SelectionState } from './calculations'
 import { computeDimensionProbability } from './calculations'
 import {
   computeDenominatorPop,
   computeEffectiveMinAge,
-  filterEligibleCells,
+  dailyToWeekly,
+  getEmploymentEligibilityFactor,
   getUniverseLabel,
   isAgeBandEligible,
+  isAtusOrHobbyTrait,
 } from './traitHelpers'
 
 const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value))
@@ -25,14 +27,19 @@ const filterCells = (cells: AcsCell[], selection: SelectionState, effectiveMinAg
     return matchesRegion && matchesSex && matchesAge
   })
 
-const computeShareFactor = (selection: SelectionState, population: PopulationData) => {
+/**
+ * Compute the base share factor (excluding employment, which is age-aware).
+ * This is applied globally after the cell-level calculation.
+ */
+const computeBaseShareFactor = (selection: SelectionState, population: PopulationData) => {
+  // Employment is handled separately per-cell due to age eligibility
   const entries: Array<[Set<string>, Record<string, { share: number; count: number }>]> = [
     [selection.race, population.dimensions.race],
-    [selection.employment, population.dimensions.employment],
     [selection.children, population.dimensions.children],
     [selection.income, population.dimensions.income],
     [selection.education, population.dimensions.education],
     [selection.householdType, population.dimensions.householdType],
+    [selection.transport, population.dimensions.transport],
   ]
 
   const product = entries.reduce((acc, [selected, shares]) => {
@@ -43,17 +50,59 @@ const computeShareFactor = (selection: SelectionState, population: PopulationDat
   return clamp(product, 0, 1)
 }
 
+/**
+ * Compute the employment share factor for a specific cell, considering age eligibility.
+ * 
+ * Employment is defined for population 16+:
+ * - 0_14: completely ineligible → factor = 0
+ * - 15_17: partially eligible (15 is not 16+) → factor = 2/3 * employment_share
+ * - 18+: fully eligible → factor = employment_share
+ * 
+ * If no employment filter is selected, returns 1 (no effect).
+ */
+const computeCellEmploymentFactor = (
+  ageBand: AgeBandKey,
+  selection: SelectionState,
+  population: PopulationData
+): number => {
+  if (selection.employment.size === 0) {
+    return 1 // No employment filter selected
+  }
+
+  const eligibilityFactor = getEmploymentEligibilityFactor(ageBand)
+  
+  if (eligibilityFactor === 0) {
+    return 0 // Cell is ineligible for employment (e.g., 0_14)
+  }
+
+  // Compute the employment dimension probability
+  const employmentProb = computeDimensionProbability(
+    selection.employment,
+    population.dimensions.employment
+  )
+
+  // Apply eligibility factor for partial eligibility (15_17)
+  return eligibilityFactor * employmentProb
+}
+
+/**
+ * Compute the product of trait probabilities for a cell.
+ * ATUS/Hobbies traits are converted from daily to weekly probabilities.
+ */
 const traitProduct = (
   cellId: string,
   traitKeys: ModeledTraitKey[],
   probabilities: ModeledAssets['traitProbabilities'],
+  manifest: ModeledAssets['manifest'],
 ) =>
   traitKeys.reduce((acc, key) => {
     const prob = probabilities[key]?.[cellId]
     if (prob === undefined) {
       throw new Error(`Missing probability for trait ${key} at cell ${cellId}. Run npm run build:modeled-data.`)
     }
-    return acc * prob
+    // Convert ATUS/Hobbies traits from daily probability to weekly
+    const effectiveProb = isAtusOrHobbyTrait(key, manifest) ? dailyToWeekly(prob) : prob
+    return acc * effectiveProb
   }, 1)
 
 export type EstimateResult = {
@@ -92,20 +141,42 @@ export const estimatePopulation = (opts: {
   
   // Filter cells with age eligibility
   const filtered = filterCells(modeled.acsCells.cells, selection, effectiveMinAge)
-  const shareFactor = computeShareFactor(selection, population)
+  
+  // Base share factor (excludes employment, which is applied per-cell)
+  const baseShareFactor = computeBaseShareFactor(selection, population)
 
+  // Compute weighted sum with per-cell employment factor
   const weightedSum = filtered.reduce((acc, cell) => {
-    const modeledMultiplier = traitKeys.length ? traitProduct(cell.cell_id, traitKeys, modeled.traitProbabilities) : 1
-    return acc + cell.pop * modeledMultiplier
+    const modeledMultiplier = traitKeys.length 
+      ? traitProduct(cell.cell_id, traitKeys, modeled.traitProbabilities, modeled.manifest) 
+      : 1
+    
+    // Employment is applied per-cell based on age band eligibility
+    const employmentFactor = computeCellEmploymentFactor(cell.age_band, selection, population)
+    
+    // Combined cell contribution: pop * modeled * employment * base_share
+    const cellContribution = cell.pop * modeledMultiplier * employmentFactor * baseShareFactor
+    
+    return acc + cellContribution
   }, 0)
 
-  const estimated = weightedSum * shareFactor
+  const estimated = weightedSum
   const probability = denominatorPop ? estimated / denominatorPop : 0
+  
+  // Compute effective shareFactor for debugging/display
+  // This is the ratio of estimated to the base (pre-share) weighted sum
+  const baseWeightedSum = filtered.reduce((acc, cell) => {
+    const modeledMultiplier = traitKeys.length 
+      ? traitProduct(cell.cell_id, traitKeys, modeled.traitProbabilities, modeled.manifest) 
+      : 1
+    return acc + cell.pop * modeledMultiplier
+  }, 0)
+  const effectiveShareFactor = baseWeightedSum > 0 ? estimated / baseWeightedSum : 1
 
   return {
     estimated: Math.round(estimated),
     probability: clamp(probability, 0, 1),
-    shareFactor,
+    shareFactor: clamp(effectiveShareFactor, 0, 1),
     matchingCells: filtered.length,
     denominatorPop,
     universeLabel,
