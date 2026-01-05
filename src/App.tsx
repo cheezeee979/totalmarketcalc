@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import TamLogo from './TAM LOGO FINAL.png'
 import { AboutPanel } from './components/AboutPanel'
 import { FilterCard } from './components/FilterCard'
 import { FilterCheckbox } from './components/FilterCheckbox'
@@ -6,7 +7,6 @@ import { MainStat } from './components/MainStat'
 import {
   buildFilterSummary,
   formatNumber,
-  formatPercent,
 } from './utils/calculations'
 import { loadAppData } from './utils/dataLoader'
 import { estimatePopulation, type EstimateResult } from './utils/populationEngine'
@@ -28,13 +28,16 @@ import type {
 } from './types'
 import type { SelectionState } from './utils/calculations'
 
-type Route = 'home' | 'about' | 'data'
+type Route = 'home' | 'about' | 'data' | 'privacy' | 'terms' | 'disclaimer'
 
 const pathForRoute = (route: Route) => (route === 'home' ? '/' : `/${route}`)
 
 const resolveRoute = (pathname: string): Route => {
   if (pathname.startsWith('/about')) return 'about'
   if (pathname.startsWith('/data')) return 'data'
+  if (pathname.startsWith('/privacy')) return 'privacy'
+  if (pathname.startsWith('/terms')) return 'terms'
+  if (pathname.startsWith('/disclaimer')) return 'disclaimer'
   return 'home'
 }
 
@@ -211,8 +214,12 @@ type StickyStatBarProps = {
 
 const StickyStatBar = ({ estimated, probability, visible, onScrollToTop }: StickyStatBarProps) => {
   const animatedValue = useAnimatedNumber(estimated)
+  const animatedProbabilityTenth = useAnimatedNumber(probability * 1000) // animate to tenths of a percent
   const isTiny = estimated > 0 && estimated < 1000
   const displayValue = isTiny ? '< 1,000' : formatNumber(animatedValue)
+  const displayPercent = (animatedProbabilityTenth / 10).toLocaleString('en-US', {
+    maximumFractionDigits: 1,
+  })
 
   return (
     <div
@@ -238,7 +245,7 @@ const StickyStatBar = ({ estimated, probability, visible, onScrollToTop }: Stick
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="flex items-center gap-1.5 rounded-lg border border-accent-500/20 bg-accent-500/5 px-3 py-1">
                 <span className="font-mono text-base font-semibold text-accent-400 sm:text-lg" aria-live="polite">
-                  {formatPercent(probability)}%
+                  {displayPercent}%
                 </span>
                 <span className="hidden text-xs text-slate-500 sm:inline">of U.S.</span>
               </div>
@@ -294,6 +301,12 @@ function App() {
 
   // Track when MainStat scrolls out of view
   useEffect(() => {
+    // Only track scroll on the home route; reset the bar when leaving
+    if (route !== 'home') {
+      setShowStickyBar(false)
+      return
+    }
+
     if (!mainStatRef.current) return
 
     const observer = new IntersectionObserver(
@@ -310,7 +323,7 @@ function App() {
 
     observer.observe(mainStatRef.current)
     return () => observer.disconnect()
-  }, [data]) // Re-run when data loads since the ref element might not exist initially
+  }, [route, data]) // Re-run when data or route changes
 
   const scrollToMainStat = () => {
     mainStatRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -397,6 +410,12 @@ function App() {
       <AboutPage />
     ) : route === 'data' ? (
       <DataPage data={data} loading={loading} />
+    ) : route === 'privacy' ? (
+      <PrivacyPage />
+    ) : route === 'terms' ? (
+      <TermsPage />
+    ) : route === 'disclaimer' ? (
+      <DisclaimerPage />
     ) : (
       <HomePage
         data={data}
@@ -440,7 +459,7 @@ function App() {
       <div className="relative z-10">
         <SiteHeader currentRoute={route} onNavigate={navigate} />
         <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">{content}</main>
-        <SiteFooter data={data} />
+        <SiteFooter data={data} onNavigate={navigate} />
       </div>
     </div>
   )
@@ -491,14 +510,13 @@ const HomePage = ({
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-400 opacity-75"></span>
           <span className="relative inline-flex h-2 w-2 rounded-full bg-accent-400"></span>
         </span>
-        Live U.S. Census Data
+        Live U.S. Data
       </div>
       <h1 className="font-display text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
-        Slice the <span className="text-gradient">U.S. Population</span>
+        Find your <span className="text-gradient">Total Available Market</span>
       </h1>
       <p className="mx-auto max-w-2xl text-lg text-slate-400">
-        Interactive demographic explorer powered by American Community Survey data. 
-        Toggle filters and watch population estimates update in real-time.
+        There are 340 million people in the U.S. How many actually want what you’re selling? Slice the data by income, interests, and geography to find your exact audience in seconds.
       </p>
     </div>
 
@@ -539,7 +557,7 @@ const HomePage = ({
         <div className="space-y-1">
           <h2 className="font-display text-2xl font-semibold text-white">Demographic Filters</h2>
           <p className="text-sm text-slate-400">
-            Multi-select across dimensions to narrow your population estimate
+            Mix and match filters to explore scenarios, compare audiences, and spot pockets of demand.
           </p>
         </div>
         <button
@@ -910,27 +928,6 @@ const HomePage = ({
         </FilterCard>
       </div>
     </section>
-
-    {/* CTA Section */}
-    <section className="glass gradient-border rounded-3xl p-8 text-center sm:p-12">
-      <h3 className="font-display text-2xl font-bold text-white sm:text-3xl">
-        Need Custom Demographics Data?
-      </h3>
-      <p className="mx-auto mt-3 max-w-xl text-slate-400">
-        Get access to advanced filters, historical trends, and export capabilities with our Pro plan.
-      </p>
-      <div className="mt-6 flex flex-col items-center justify-center gap-4 sm:flex-row">
-        <button className="cta-button group relative inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-accent-500 to-glow-500 px-8 py-3 font-semibold text-white shadow-glow-md transition hover:shadow-glow-lg">
-          <span>Upgrade to Pro</span>
-          <svg className="h-5 w-5 transition group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-          </svg>
-        </button>
-        <button className="inline-flex items-center gap-2 rounded-xl border border-dark-300 bg-dark-600/50 px-8 py-3 font-medium text-slate-300 transition hover:border-accent-500/50 hover:text-white">
-          Learn More
-        </button>
-      </div>
-    </section>
   </div>
 )}
 
@@ -941,21 +938,67 @@ const AboutPage = () => (
         About
       </div>
       <h1 className="font-display text-4xl font-bold tracking-tight text-white sm:text-5xl">
-        What This <span className="text-gradient">Calculator</span> Does
+        Size Your <span className="text-gradient">Total Available Market</span>
       </h1>
       <p className="mx-auto max-w-2xl text-lg text-slate-400">
-        A simple, interactive way to understand how many people in the United States match a set of
-        demographic and economic filters. No accounts, no API calls on page load—just instant
-        estimates based on cached Census data.
+        Built for founders and marketers to quantify U.S. consumer opportunity. Toggle filters, test assumptions, and see the population respond instantly—no login or waiting for queries.
       </p>
     </div>
 
     <div className="glass gradient-border space-y-4 rounded-3xl p-6 text-slate-300 sm:p-8">
       <p>
-        The homepage lets you toggle sex, race, geography, and employment filters. As you make
-        selections, the main number, percent, and 10×10 grid animate to show the share of the U.S.
-        population that fits your choices.
+        The homepage lets you stack filters across sex, race, geography, employment, modeled traits, and more. As you adjust your ideal customer profile, the main number, percent, and 10×10 grid animate to show how many Americans fit—and how concentrated they are.
       </p>
+      <p>
+        We pair American Community Survey counts with modeled behavioral traits to give directional, segment-level insight without needing a data team. Everything is aggregated: no accounts, no uploads, just a fast sandbox for sizing your Total Available Market.
+      </p>
+      <div className="space-y-3 rounded-2xl border border-dark-400/50 bg-dark-800/40 p-4 sm:p-5">
+        <h3 className="text-sm font-semibold text-white">What is Total Available Market?</h3>
+        <p>
+          Total Available Market (TAM) is the full revenue or customer count you could pursue if you captured 100% of a defined problem space. It sets the outer boundary before you layer in serviceable and obtainable segments, helping you see the scale of opportunity at the national level.
+        </p>
+        <ul className="list-inside space-y-2 text-slate-400">
+          <li>Clarifies whether a concept is venture-scale or better suited to a focused niche.</li>
+          <li>Shapes pricing, positioning, and channel bets by revealing where the headroom actually sits.</li>
+          <li>Strengthens fundraising and planning narratives with a grounded, data-backed market ceiling.</li>
+        </ul>
+      </div>
+      <div className="grid gap-4 rounded-2xl border border-dark-400/50 bg-dark-800/40 p-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-white">Why this data helps</h3>
+          <ul className="list-inside space-y-2 text-slate-400">
+            <li className="flex items-start gap-2">
+              <span className="mt-1 h-2 w-2 rounded-full bg-accent-400"></span>
+              Census backbone ensures every scenario sums to the real population baseline.
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="mt-1 h-2 w-2 rounded-full bg-accent-400"></span>
+              Modeled traits add behavioral signals (e.g., exercise, childcare time) to refine who actually buys.
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="mt-1 h-2 w-2 rounded-full bg-accent-400"></span>
+              Regional toggles show whether your TAM is clustered or evenly distributed.
+            </li>
+          </ul>
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-white">Why founders should care</h3>
+          <ul className="list-inside space-y-2 text-slate-400">
+            <li className="flex items-start gap-2">
+              <span className="mt-1 h-2 w-2 rounded-full bg-electric-400"></span>
+              Validate whether a niche is big enough before you build or fundraise.
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="mt-1 h-2 w-2 rounded-full bg-electric-400"></span>
+              Prioritize go-to-market by seeing which segments move your TAM the most.
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="mt-1 h-2 w-2 rounded-full bg-electric-400"></span>
+              Compare “what if” personas quickly instead of waiting on custom research.
+            </li>
+          </ul>
+        </div>
+      </div>
       <ul className="list-inside space-y-3">
         <li className="flex items-start gap-3">
           <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-500/20 text-accent-400">
@@ -963,7 +1006,7 @@ const AboutPage = () => (
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
           </span>
-          Large, centered output keeps the focus on the estimated population.
+          The main stat and grid keep you oriented as you test different customer definitions.
         </li>
         <li className="flex items-start gap-3">
           <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-500/20 text-accent-400">
@@ -971,7 +1014,7 @@ const AboutPage = () => (
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
           </span>
-          The percent text and grid visually map each percentage point to a square.
+          Percent and grid views make it easy to compare segments at a glance.
         </li>
         <li className="flex items-start gap-3">
           <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-500/20 text-accent-400">
@@ -979,8 +1022,150 @@ const AboutPage = () => (
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
           </span>
-          Filters remain flexible with multi-select support within each dimension.
+          Multi-select filters let you quickly include/exclude traits to stress-test your ICP.
         </li>
+      </ul>
+    </div>
+  </div>
+)
+
+const PrivacyPage = () => (
+  <div className="space-y-8">
+    <div className="space-y-4 text-center">
+      <div className="inline-flex items-center gap-2 rounded-full border border-accent-500/30 bg-accent-500/10 px-4 py-1.5 text-sm font-medium text-accent-400">
+        Privacy
+      </div>
+      <h1 className="font-display text-4xl font-bold tracking-tight text-white sm:text-5xl">
+        Privacy at <span className="text-gradient">Ochre Rose Software LLC</span>
+      </h1>
+      <p className="mx-auto max-w-2xl text-lg text-slate-400">
+        We present publicly available U.S. government data and do not sell your personal information. This page explains how we treat the limited data related to your use of the tool.
+      </p>
+    </div>
+
+    <div className="glass gradient-border space-y-4 rounded-3xl p-6 text-slate-300 sm:p-8">
+      <h2 className="font-display text-2xl font-semibold text-white">Key Points</h2>
+      <ul className="list-inside space-y-3">
+        <li className="flex items-start gap-3">
+          <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-500/20 text-accent-400">
+            <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+          </span>
+          Ochre Rose Software LLC does not sell or rent your data. We use data solely to operate and improve the site.
+        </li>
+        <li className="flex items-start gap-3">
+          <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-500/20 text-accent-400">
+            <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+          </span>
+          We may use basic analytics, cookies, and display advertising to understand usage and fund the site. You can block cookies via your browser.
+        </li>
+        <li className="flex items-start gap-3">
+          <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-500/20 text-accent-400">
+            <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+          </span>
+          No end-user content is collected or repackaged. Inputs stay in the browser; outputs come from publicly available U.S. government data and modeled aggregates.
+        </li>
+        <li className="flex items-start gap-3">
+          <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-500/20 text-accent-400">
+            <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+          </span>
+          Data cannot be repackaged or resold. You may not scrape, bulk export, or create derivative datasets for commercial sale.
+        </li>
+        <li className="flex items-start gap-3">
+          <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-500/20 text-accent-400">
+            <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+          </span>
+          We may update this notice as we add features; continuing to use the site means you accept the current policy.
+        </li>
+      </ul>
+    </div>
+  </div>
+)
+
+const TermsPage = () => (
+  <div className="space-y-8">
+    <div className="space-y-4 text-center">
+      <div className="inline-flex items-center gap-2 rounded-full border border-accent-500/30 bg-accent-500/10 px-4 py-1.5 text-sm font-medium text-accent-400">
+        Terms of Use
+      </div>
+      <h1 className="font-display text-4xl font-bold tracking-tight text-white sm:text-5xl">
+        Terms for <span className="text-gradient">Total Available Market</span>
+      </h1>
+      <p className="mx-auto max-w-2xl text-lg text-slate-400">
+        By using this site, you agree to these terms between you and Ochre Rose Software LLC. The tool is provided for educational use only.
+      </p>
+    </div>
+
+    <div className="glass gradient-border space-y-5 rounded-3xl p-6 text-slate-300 sm:p-8">
+      <section className="space-y-2">
+        <h2 className="text-lg font-semibold text-white">Use of the Service</h2>
+        <p>You receive a revocable, non-transferable license to access the site for personal or internal business analysis.</p>
+        <ul className="list-disc space-y-2 pl-5 text-slate-400">
+          <li>No resale, sublicensing, scraping, bulk exporting, or repackaging of the data.</li>
+          <li>No use for unlawful, harmful, or competitive scraping purposes.</li>
+          <li>No attempts to reverse engineer or bypass security or rate limits.</li>
+        </ul>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-lg font-semibold text-white">Data & Intellectual Property</h2>
+        <p>We present public U.S. government data with modeled aggregates. All site content, branding, and code are owned by Ochre Rose Software LLC.</p>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-lg font-semibold text-white">No Warranty & Limitation of Liability</h2>
+        <ul className="list-disc space-y-2 pl-5 text-slate-400">
+          <li>The site is provided “as is” without warranties of accuracy, completeness, fitness, or availability.</li>
+          <li>We are not responsible for the accuracy of the data and not liable for any inaccuracies.</li>
+          <li>We are not liable for any injury, damages, business losses, or failures arising from use of the tool.</li>
+          <li>Your sole remedy for dissatisfaction is to stop using the site.</li>
+        </ul>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-lg font-semibold text-white">Indemnity</h2>
+        <p>You agree to indemnify and hold Ochre Rose Software LLC harmless from claims arising from your misuse of the site or violation of these terms.</p>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-lg font-semibold text-white">Changes & Availability</h2>
+        <p>We may modify or discontinue the site at any time. We may update these terms; continued use signifies acceptance.</p>
+      </section>
+    </div>
+  </div>
+)
+
+const DisclaimerPage = () => (
+  <div className="space-y-8">
+    <div className="space-y-4 text-center">
+      <div className="inline-flex items-center gap-2 rounded-full border border-accent-500/30 bg-accent-500/10 px-4 py-1.5 text-sm font-medium text-accent-400">
+        Disclaimer
+      </div>
+      <h1 className="font-display text-4xl font-bold tracking-tight text-white sm:text-5xl">
+        Important Notices & <span className="text-gradient">Disclaimers</span>
+      </h1>
+      <p className="mx-auto max-w-2xl text-lg text-slate-400">
+        Total Available Market is for educational use only. We present public data and modeled estimates without guarantees.
+      </p>
+    </div>
+
+    <div className="glass gradient-border space-y-4 rounded-3xl p-6 text-slate-300 sm:p-8">
+      <ul className="list-disc space-y-3 pl-5 text-slate-400">
+        <li>Ochre Rose Software LLC is not responsible for the accuracy of the data and makes no warranty of completeness, timeliness, or fitness for any purpose.</li>
+        <li>We are not liable for any inaccuracies, or for any injury, damages, business losses, or failures caused by using the website or tool.</li>
+        <li>The tool and outputs are not financial, legal, medical, or business advice. Validate findings independently before making decisions.</li>
+        <li>The data cannot be repackaged or resold. We are presenters of publicly available U.S. government data combined with modeled aggregates.</li>
+        <li>We may have cookies or on-page advertising. Advertisers and analytics providers may set their own cookies subject to their policies.</li>
+        <li>Use of the site is at your own risk; your sole remedy is to discontinue use.</li>
       </ul>
     </div>
   </div>
@@ -1175,10 +1360,14 @@ const SiteHeader = ({ currentRoute, onNavigate }: SiteHeaderProps) => {
           }}
         >
           <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-accent-500 to-glow-500 shadow-glow-sm transition group-hover:shadow-glow-md">
-            <span className="font-display text-lg font-bold text-white">P</span>
+            <img
+              src={TamLogo}
+              alt="Total Available Market logo"
+              className="h-9 w-9 translate-x-[1px] rounded-lg object-contain drop-shadow-[0_0_12px_rgba(56,189,248,0.45)] transition duration-200 group-hover:scale-105"
+            />
           </div>
           <div className="flex flex-col">
-            <span className="font-display text-lg font-semibold text-white">PopScope</span>
+            <span className="font-display text-lg font-semibold text-white">Total Available Market</span>
             <span className="text-xs text-slate-500">U.S. Demographics</span>
           </div>
         </a>
@@ -1201,25 +1390,26 @@ const SiteHeader = ({ currentRoute, onNavigate }: SiteHeaderProps) => {
               {item.label}
             </a>
           ))}
-          <button className="ml-4 rounded-lg bg-gradient-to-r from-accent-500 to-accent-600 px-4 py-2 text-sm font-semibold text-white shadow-glow-sm transition hover:shadow-glow-md">
-            Get Pro
-          </button>
         </nav>
       </div>
     </header>
   )
 }
 
-const SiteFooter = ({ data }: { data: AppData | null }) => (
+const SiteFooter = ({ data, onNavigate }: { data: AppData | null; onNavigate: (route: Route) => void }) => (
   <footer className="border-t border-white/5 bg-dark-900/50">
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-accent-500 to-glow-500">
-              <span className="font-display text-lg font-bold text-white">P</span>
+              <img
+                src={TamLogo}
+                alt="Total Available Market logo"
+                className="h-9 w-9 translate-x-[1px] rounded-lg object-contain drop-shadow-[0_0_12px_rgba(56,189,248,0.45)]"
+              />
             </div>
-            <span className="font-display text-lg font-semibold text-white">PopScope</span>
+            <span className="font-display text-lg font-semibold text-white">Total Available Market</span>
           </div>
           <p className="text-sm text-slate-500">
             Real-time U.S. population estimates powered by American Community Survey data.
@@ -1227,36 +1417,81 @@ const SiteFooter = ({ data }: { data: AppData | null }) => (
         </div>
         
         <div className="space-y-3">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Product</h4>
-          <ul className="space-y-2 text-sm text-slate-500">
-            <li><a href="#" className="transition hover:text-accent-400">Features</a></li>
-            <li><a href="#" className="transition hover:text-accent-400">Pricing</a></li>
-            <li><a href="#" className="transition hover:text-accent-400">API Access</a></li>
-          </ul>
-        </div>
-        
-        <div className="space-y-3">
           <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Resources</h4>
           <ul className="space-y-2 text-sm text-slate-500">
-            <li><a href="#" className="transition hover:text-accent-400">Documentation</a></li>
-            <li><a href="#" className="transition hover:text-accent-400">Census Data</a></li>
-            <li><a href="#" className="transition hover:text-accent-400">Methodology</a></li>
+            <li>
+              <a
+                href="/about"
+                className="transition hover:text-accent-400"
+                onClick={(e) => {
+                  e.preventDefault()
+                  onNavigate('about')
+                }}
+              >
+                About The Tool
+              </a>
+            </li>
+            <li>
+              <a
+                href="/data"
+                className="transition hover:text-accent-400"
+                onClick={(e) => {
+                  e.preventDefault()
+                  onNavigate('data')
+                }}
+              >
+                Data & Methodology
+              </a>
+            </li>
           </ul>
         </div>
         
         <div className="space-y-3">
           <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Legal</h4>
           <ul className="space-y-2 text-sm text-slate-500">
-            <li><a href="#" className="transition hover:text-accent-400">Privacy</a></li>
-            <li><a href="#" className="transition hover:text-accent-400">Terms</a></li>
-            <li><a href="#" className="transition hover:text-accent-400">Disclaimer</a></li>
+            <li>
+              <a
+                href="/privacy"
+                className="transition hover:text-accent-400"
+                onClick={(e) => {
+                  e.preventDefault()
+                  onNavigate('privacy')
+                }}
+              >
+                Privacy
+              </a>
+            </li>
+            <li>
+              <a
+                href="/terms"
+                className="transition hover:text-accent-400"
+                onClick={(e) => {
+                  e.preventDefault()
+                  onNavigate('terms')
+                }}
+              >
+                Terms
+              </a>
+            </li>
+            <li>
+              <a
+                href="/disclaimer"
+                className="transition hover:text-accent-400"
+                onClick={(e) => {
+                  e.preventDefault()
+                  onNavigate('disclaimer')
+                }}
+              >
+                Disclaimer
+              </a>
+            </li>
           </ul>
         </div>
       </div>
       
       <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-white/5 pt-8">
         <p className="text-sm text-slate-500">
-          © 2024 PopScope. Population estimates based on ACS data; independence assumption applied.
+          © 2024 Ochre Rose Software LLC. Population estimates based on ACS data; independence assumption applied.
         </p>
         <div className="flex flex-wrap items-center gap-3">
           {data ? (
